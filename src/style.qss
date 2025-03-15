@@ -1,0 +1,82 @@
+QMainWindow {
+    background-color: #1e1e1e;
+}
+
+QWidget {
+    font-family: 'Segoe UI', Arial, sans-serif;
+}
+
+QListWidget, QTextEdit {
+    background-color: #252526;
+    color: #d4d4d4;
+    border: 1px solid #3f3f3f;
+    border-radius: 4px;
+    padding: 2px;
+    font-size: 10pt;
+}
+
+QListWidget::item {
+    padding: 4px;
+    border-radius: 2px;
+}
+
+QListWidget::item:selected {
+    background-color: #094771;
+    color: #ffffff;
+}
+
+QListWidget::item:hover:!selected {
+    background-color: #2a2d2e;
+}
+
+QTextEdit {
+    padding: 4px;
+    line-height: 1.4;
+}
+
+/* Default button style */
+QPushButton {
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    font-weight: bold;
+    background-color: #505050;  /* Default gray */
+}
+
+/* Function-specific button colors with states */
+QPushButton#saveButton {
+    background-color: #0e639c; /* Blue - standard action */
+}
+QPushButton#saveButton:hover {
+    background-color: #1177bb; /* Lighter blue */
+}
+QPushButton#saveButton:pressed {
+    background-color: #0d5989; /* Darker blue */
+}
+
+QPushButton#newButton {
+    background-color: #10715e; /* Teal - creation action */
+}
+QPushButton#newButton:hover {
+    background-color: #13866f; /* Lighter teal */
+}
+QPushButton#newButton:pressed {
+    background-color: #0e5c4e; /* Darker teal */
+}
+
+QPushButton#deleteButton {
+    background-color: #a1260d; /* Red - destructive action */
+}
+QPushButton#deleteButton:hover {
+    background-color: #b92d0f; /* Lighter red */
+}
+QPushButton#deleteButton:pressed {
+    background-color: #87200b; /* Darker red */
+}
+
+QStatusBar {
+    background-color: #13866f;
+    color: #ffffff;
+    font-weight: bold;
+}
