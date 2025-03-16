@@ -10,6 +10,9 @@ import signal
 #inherit event loop and signal slot mechanism
 class SnippetApp(QObject):
     command_typed = Signal(str) #signal to be emitted when command is typed
+    #emit passed to any connected slots
+    #Emit call returns immediately without waiting fo slots to finish processing
+
     def __init__(self):
         super().__init__()#initialize QObject from super class constructor
         self.storage = SnippetStorage()
@@ -27,7 +30,6 @@ class SnippetApp(QObject):
         self.buffer = ""
         keyboard.on_release(self._track_keystrokes)
 
-    #tracking keystrokes
     def _track_keystrokes(self, event):
         """Using buffer of typed characters and check for commands"""
         if event.event_type == "up":
@@ -35,6 +37,14 @@ class SnippetApp(QObject):
         char = event.name
         if char == "backspace":
             self.buffer=self.buffer[:-1]
+        elif char == "space":
+            #Check if buffer contains a registered command
+            #When people finish typing they naturally press space 
+            for cmd in self.storage.snippets:
+                if self.buffer == cmd:
+                    self.command_typed.emit(cmd)
+                    self.buffer = "" #reset
+                    break
         elif len(char) ==1:
             #ignoring modifiers
             self.buffer +=char
@@ -114,8 +124,9 @@ class SnippetApp(QObject):
         for cmd, text in self.storage.snippets.items():
             try:
                 print(f"Registering command: {cmd}")
-                
-                pass
+                if not cmd or len(cmd)<1:
+                    print("Invalid command, skipping...")
+                    continue
             except Exception as e:
                 print(f"Error registering command {cmd}: {e}")
     #quitting app:
