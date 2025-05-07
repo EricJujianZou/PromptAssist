@@ -8,9 +8,10 @@ from PySide6.QtCore import Slot
 from storage import SnippetStorage #importing class
 
 class SnippetUI (QMainWindow):
-    def __init__(self, storage = None, parent_app=None):
-        super().__init__()
+    def __init__(self, storage, parent_app = None, parent=None):
+        super().__init__(parent)
         self.storage = storage or SnippetStorage()
+        self.parent_app = parent_app
         self._init_ui()
 
     def _init_ui(self):
@@ -99,7 +100,8 @@ class SnippetUI (QMainWindow):
             QMessageBox.warning(self, "No snippet selected", "Please select a snippet to save")
             return
         if self.parent_app:
-            self.parent_app.refresh_commands() #refresh in main app so the storage are linked
+            if hasattr(self.parent_app, '_refresh_commands'):
+                self.parent_app._refresh_commands() #refresh in main app so the storage are linked
 
     @Slot()
     def _new_snippet(self):
@@ -116,7 +118,7 @@ class SnippetUI (QMainWindow):
         else:
             return
         if self.parent_app:
-            self.parent_app.refresh_commands() #refresh in main app so the storage are linked
+            self.parent_app._refresh_commands() #refresh in main app so the storage are linked
 
     #method to delete a snippet
     @Slot()
@@ -136,9 +138,9 @@ class SnippetUI (QMainWindow):
             else: 
                 return
         else:
-            QMEessageBox.warning(self, "No snippet selected", "Please select a snippet to delete")
+            QMessageBox.warning(self, "No snippet selected", "Please select a snippet to delete")
         if self.parent_app:
-            self.parent_app.refresh_commands()
+            self.parent_app._refresh_commands()
 
 
 def load_stylesheet(file_path):

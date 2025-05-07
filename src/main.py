@@ -9,9 +9,8 @@ import time
 import threading
 import win32gui #apis for window changes
 import win32process
-#UIA Part for content tracking and buffer comparison
-
-from pywinauto import Desktop, Application
+#UIA Part for content tracking and buffer comparison - COMMENTED OUT FOR NOW
+# from pywinauto import Desktop, Application
 
 #QObject is the base class for all Qt objects
 #inherit event loop and signal slot mechanism
@@ -26,17 +25,17 @@ class SnippetApp(QObject):
         self.storage = SnippetStorage()
         self.buffer="" #initialize buffer
         self.last_active_window = None
-        self.cached_control = None #implement cache control, which stores reference to the active UI control to reduce UIA overhead
+        # self.cached_control = None #implement cache control, which stores reference to the active UI control to reduce UIA overhead - COMMENTED OUT
         self.last_input_time = time.time() #when did the user last type? 
         self.ctrl_pressed = False
 
         #App compatibility, works with most but for some can not detect the input content
-        self.blacklisted_apps = ["powershell.exe", "cmd.exe", "putty.exe"]
+        self.blacklisted_apps = ["powershell.exe", "cmd.exe", "putty.exe"] # Still relevant for focus tracking/buffer clearing
 
         self._init_tray_icon()
         self._register_commands()
         self._init_keyboard_listener()
-        self._init_uia_polling()
+        # self._init_uia_polling() # COMMENTED OUT
         self._start_focus_tracker()
 
         self.command_typed.connect(self._replace_snippet)
@@ -55,69 +54,108 @@ class SnippetApp(QObject):
     def _init_keyboard_listener(self):
         """Monitoring keystrokes in live time for commands"""
         self.buffer = ""
-        keyboard.on_release(self._track_keystrokes)
-        keyboard.on_press_key("ctrl", self._ctrl_key_handler, suppress=False) #Still let the normal ctrl + whatever combo to work
+        try:
+            keyboard.on_press(self._track_keystrokes)
+            print("Keyboard listener initialized. Went in track keystrokes")
+        except Exception as e:
+            print(f"Error initializing keyboard listener: {e}")
 
-    def _ctrl_key_handler(self, event):
-        """ Handle Ctrl Key press
+
+    # def _ctrl_key_handler(self, event):
+    #     """ Handle Ctrl Key press
          
-        * Updated to track the last input time when the user presses the Ctrl key
-        * This is to ensure that the buffer is cleared when the user starts typing after pressing Ctrl
-        """
-        self.ctrl_pressed = (event.event_type == "down")
-        if self.ctrl_pressed:
-            self.last_input_time = time.time()
+    #     * Updated to track the last input time when the user presses the Ctrl key
+    #     * This is to ensure that the buffer is cleared when the user starts typing after pressing Ctrl
+    #     """
+    #     self.ctrl_pressed = (event.event_type == "down")
+    #     if self.ctrl_pressed:
+    #         self.last_input_time = time.time()
 
 
     def _track_keystrokes(self, event):
         """Using buffer of typed characters and check for commands"""
-        if event.event_type == "up":
+        print(f"--- _track_keystrokes CALLED: event_type={event.event_type}, name={event.name} ---") # New top-level log
+
+        if event.name == "ctrl" or event.name == "left_ctrl" or event.name == "right_ctrl":
+            if event.event_type == "down":
+                self.ctrl_pressed = True
+                self.last_input_time = time.time() # Update last input time when Ctrl is pressed
+            else:
+                self.ctrl_pressed = False
             return
+            
+        if event.event_type == "up": #to prevent counting the key press and key release as two separate events
+            return
+
+        print(f"Keystroke detected: {event.name}") # Uncomment this if you want to see every key press
 
         #Check last input time:
         self.last_input_time = time.time()
 
         #Handle ctrl combo presses:
         if self.ctrl_pressed and event.name in ('a', 'c', 'v', 'x', 'z'):
+            print("Ctrl+Key detected, clearing buffer.") # Log buffer clear
             self.buffer=""
-            #Do a UIA poll to check input if the user pasted something in
-            QTimer.singleShot(100, self._verify_buffer_with_uia) #delay so ui updates before we check buffer
+            #Do a UIA poll to check input if the user pasted something in - COMMENTED OUT
+            # QTimer.singleShot(100, self._verify_buffer_with_uia) #delay so uia updates before we check buffer
             return
 
         """ Handle Character Input """
         char = event.name
         if char == "backspace":
-            self.buffer=self.buffer[:-1] if self.buffer else "" #concise way of writing if buffer has something then backspace the last thing else empty
+            if self.buffer: # Only modify if buffer is not empty
+                self.buffer=self.buffer[:-1]
+                print(f"Buffer after backspace: '{self.buffer}'") # Log after backspace
+            else:
+                print("Buffer empty, backspace ignored.")
         elif char == "space":
+            print(f"Space detected. Buffer before check: '{self.buffer}'") # Log before space check
             #Check if buffer contains a registered command
             if "::" in self.buffer:
                 parts = self.buffer.split("::")
                 if len(parts) > 1:
                     cmd = "::" + parts[-1]
+                    print(f"Checking for command: '{cmd}'") # Log command check
                     if cmd in self.storage.snippets:
+                        print(f"Command '{cmd}' found! Emitting signal.") # Log command found
                         self.command_typed.emit(cmd)
                         self.buffer = ""
+                        print("Buffer cleared after command.") # Log buffer clear
                         return
+                    else:
+                        print(f"Command '{cmd}' not found in storage.") # Log command not found
             
-            self.buffer += " "#normal space
+            self.buffer += " " # Add space if no command was triggered
+            print(f"Buffer after space added: '{self.buffer}'") # Log after space added
         elif len(char) == 1 and not self.ctrl_pressed:
             #add character to buffer
             self.buffer+=char
+            print(f"Buffer after adding char '{char}': '{self.buffer}'") # Log after adding character
 
             #limit buffer size if they keep on typing for performance and privacy
             if len(self.buffer) > 100:
                 self.buffer = self.buffer[-50:]
+                print(f"Buffer trimmed: '{self.buffer}'") # Log buffer trimming
+        else:
+            # Log other keys if needed (like shift, alt, etc.)
+            # print(f"Non-character key ignored: {char}")
+            pass # Ignore other keys like shift, alt, etc. for now
 
             
     def _init_tray_icon(self):
         # Set up tray icon with quit option
         try: 
-            self.tray_icon = QSystemTrayIcon(QIcon.fromTheme("application-exit"))
-        
-            self.tray_icon.setToolTip(f"Buffer: {self.buffer[:20]}")
+            # Try to load a specific icon, fall back if needed
+            icon_path = "path/to/your/icon.ico" # Replace with actual path if you have one
+            self.tray_icon = QSystemTrayIcon(QIcon(icon_path))
+            if self.tray_icon.icon().isNull(): # Check if icon loaded successfully
+                 raise FileNotFoundError("Icon file not found or invalid")
+            self.tray_icon.setToolTip("Snippet App") # Simpler tooltip for now
         except Exception as e:
-            print (f"Error initializing tray icon: {e}")
-            self.tray_icon = QSystemTrayIcon(QIcon.fromTheme("document-new"))
+            print (f"Error initializing tray icon: {e}. Using default.")
+            # Fallback to a standard system icon
+            self.tray_icon = QSystemTrayIcon(QIcon.fromTheme("document-new")) 
+            self.tray_icon.setToolTip("Snippet App (Default Icon)")
            
 
         # Create a menu for the tray icon
@@ -143,13 +181,15 @@ class SnippetApp(QObject):
     
     
     def _refresh_commands(self):
-        keyboard.unhook_all()
+        # This might not be needed if registration is simple, but keep for now
+        # keyboard.unhook_all() # Careful with unhooking all if other parts use keyboard
         self._register_commands()
+
     def _open_snippet_manager(self):
         #lazy loading to avoid circular imports
         from ui import SnippetUI
         #if ui is not already open, open it
-        if not hasattr(self, 'ui'):
+        if not hasattr(self, 'ui') or not self.ui.isVisible(): # Check if UI exists and is visible
             self.ui = SnippetUI(storage=self.storage, parent_app=self)
             self.ui.show()
         else:
@@ -163,42 +203,46 @@ class SnippetApp(QObject):
     def _replace_snippet(self, cmd):
         try:
             #Remove prefix if its using new :: format
-            lookup_cmd = cmd[2:] if cmd.startswith("::") else cmd
-            #delete the command
+            # lookup_cmd = cmd[2:] if cmd.startswith("::") else cmd # Assuming cmd already includes ::
             
-            for _ in range (len(cmd)):
+            # Calculate backspaces needed (length of command + 1 for the space)
+            backspaces_needed = len(cmd) + 1 
+            
+            # Simulate backspaces
+            for _ in range (backspaces_needed):
                 keyboard.press_and_release('backspace')
-                time.sleep(0.01)
+                time.sleep(0.01) # Small delay between keys
 
             #insert snippet text
-            snippet_text = self.storage.snippets.get(lookup_cmd) or self.storage.snippets.get(cmd)
+            snippet_text = self.storage.snippets.get(cmd) # Use the full command including ::
             if not snippet_text:
-                raise KeyError(f"Snippet {cmd} not found")
+                raise KeyError(f"Snippet {cmd} not found in storage")
 
             keyboard.write(snippet_text)
 
-            #Verify the replacement with UIA
-            QTimer.singleShot(100, self._verify_buffer_with_uia) #update the ui for some time for the app and buffer to react
+            #Verify the replacement with UIA - COMMENTED OUT
+            # QTimer.singleShot(100, self._verify_buffer_with_uia) #update the ui for some time for the app and buffer to react
 
         except KeyError as e:
-            print (f"Error: {e}")
-
+            print (f"Error replacing snippet: {e}")
+        except Exception as e:
+            print(f"An unexpected error occurred during snippet replacement: {e}")
 
 
     def _register_commands(self):
         """Register all commands from storage with the keyboard library"""
+        # No actual registration needed with the buffer approach, just load them
         if not self.storage.snippets:
             print("No snippets found!")
             return
             
         for cmd, text in self.storage.snippets.items():
-            try:
-                print(f"Registering command: {cmd}")
-                if not cmd or len(cmd)<1:
-                    print("Invalid command, skipping...")
-                    continue
-            except Exception as e:
-                print(f"Error registering command {cmd}: {e}")
+            # Basic validation
+            if not cmd.startswith("::") or len(cmd) <= 2:
+                print(f"Invalid command format, skipping: {cmd}")
+                continue
+            print(f"Loaded command: {cmd}") # Changed from "Registering"
+
     #quitting app:
     def _handle_signal(self, signum, frame):
         """Handle termination signals"""
@@ -206,118 +250,110 @@ class SnippetApp(QObject):
         self._quit_app()
 
 
-    """ 
-    * UIA PART 
-    """
+    # """ 
+    # * UIA PART - COMMENTED OUT
+    # """
 
-    """ Initialize UIA polling for text content verification """
-    def _init_uia_polling(self):
-        self.poll_timer = QTimer()
-        self.poll_timer.timeout.connect(self._verify_buffer_with_uia)
+    # """ Initialize UIA polling for text content verification """
+    # def _init_uia_polling(self):
+    #     self.poll_timer = QTimer()
+    #     self.poll_timer.timeout.connect(self._verify_buffer_with_uia)
 
-        #base polling rate of 500ms, should only use around 3-5% CPU if performing buffer check
-        self.polling_interval = 500
-        self.poll_timer.start(self.polling_interval)
+    #     #base polling rate of 500ms, should only use around 3-5% CPU if performing buffer check
+    #     self.polling_interval = 500
+    #     self.poll_timer.start(self.polling_interval)
     
     
     
-    """ Poll the active text field and verify buffer """
-    def _verify_buffer_with_uia(self):
+    # """ Poll the active text field and verify buffer """
+    # def _verify_buffer_with_uia(self):
+    #     if not self._should_perform_uia_check():
+    #         return    
+    #     try:
+    #         # Get the text from the active control
+    #         text = self._get_text_from_focused_control()
+    #         # print("Buffer: '{}'".format(self.buffer)) # Optional debug
+    #         # print("UIA text: '{}'".format(text[:50] if text else "")) # Optional debug
 
-        if not self._should_perform_uia_check():
-            return    
-        try:
-            #get the text from the active control
-            text = self._get_text_from_focused_control()
-            print("UIA text: ", {text[:50]})
-
-            #early exit if no text
-            if not text:
-                self.buffer =""
-                return
+    #         # Early exit if no text
+    #         if not text:
+    #             # self.buffer = "" # Maybe don't clear buffer if UIA fails?
+    #             return
             
-            #Buffer comparison
-            if self.buffer and not text.endswith(self.buffer):
-                self.buffer =""
+    #         # Buffer comparison
+    #         if self.buffer and not text.endswith(self.buffer):
+    #             print("Buffer doesn't match UIA text, resetting buffer")
+    #             self.buffer = ""
 
-        except Exception as e:
-            #UIA access failed
-            print (f"UIA verification failed: {e}")
+    #     except Exception as e:
+    #         # UIA access failed
+    #         print(f"UIA verification failed: {e}")
 
-        #Adjust polling rate based on typing activity
-        self._adjust_polling_rate()
+    #     # Adjust polling rate based on typing activity
+    #     self._adjust_polling_rate()
     
-    """ Adjust the polling rate if the user is typing or not """
-    def _adjust_polling_rate(self):
-        time_since_input = time.time() - self.last_input_time
+    # """ Adjust the polling rate if the user is typing or not """
+    # def _adjust_polling_rate(self):
+    #     time_since_input = time.time() - self.last_input_time
 
-        if time_since_input < 2.0: #They're typing. 2 second window accounts for slow typers
-            if self.polling_interval != 100:
-                self.polling_interval = 100
-                self.poll_timer.setInterval(self.polling_interval)
-        else: #They're not typing
-            if self.polling_interval != 500:
-                self.polling_interval = 500
-                self.poll_timer.setInterval(self.polling_interval)
+    #     if time_since_input < 2.0: #They're typing. 2 second window accounts for slow typers
+    #         if self.polling_interval != 100:
+    #             self.polling_interval = 100
+    #             self.poll_timer.setInterval(self.polling_interval)
+    #     else: #They're not typing
+    #         if self.polling_interval != 500:
+    #             self.polling_interval = 500
+    #             self.poll_timer.setInterval(self.polling_interval)
 
-    """ Check if we should do UIA check """
-    def _should_perform_uia_check(self):
-        #Skip if the buffer is empty (they not typing) and no recent activity
-        if not self.buffer and (time.time() - self.last_input_time) > 2.0:
-            return False
+    # """ Check if we should do UIA check """
+    # def _should_perform_uia_check(self):
+    #     #Skip if the buffer is empty (they not typing) and no recent activity
+    #     # if not self.buffer and (time.time() - self.last_input_time) > 2.0:
+    #     #     return False
 
-        #Skip if the active window is blacklisted
-        current_app = self._get_current_app_name() #not use active app cus blacklisted is blacklisted regardless of which window is active
-        if current_app in self.blacklisted_apps:
-            return False
+    #     #Skip if the active window is blacklisted
+    #     current_app = self._get_current_app_name() #not use active app cus blacklisted is blacklisted regardless of which window is active
+    #     if current_app in self.blacklisted_apps:
+    #         return False
 
-        return True
+    #     return True # Simplified for now if UIA is minimal
 
-    """ Get the text from the focused control """
-    def _get_text_from_focused_control(self):
-        try:
-            if not self.cached_control or not self._is_control_valid():
-                #getting focused element
-                self.cached_control = Desktop(backend="uia").focused_control
+    # """ Get the text from the focused control """
+    # def _get_text_from_focused_control(self):
+    #     """Get text from the currently focused control with improved focus detection"""
+    #     # THIS ENTIRE METHOD IS COMMENTED OUT AS UIA IS DISABLED
+    #     return "" # Return empty string if UIA is disabled
 
-            #return the text from the control. Using texts and window text to be flexible about how the UI expose their text
-            if hasattr(self.cached_control, "texts"):
-                text = " ".join(self.cached_control.texts())
-                return text
-            elif hasattr(self.cached_control, "window_text"):
-                return self.cached_control.window_text()
-
-        except Exception as e:
-            print(f"Error getting text from control: {e}")
-            self.cached_control = None
+    # """ Check if the cached control is still valid, or if the user closed the window or modified UI """
+    # def _is_control_valid(self):
+    #     # THIS ENTIRE METHOD IS COMMENTED OUT AS UIA IS DISABLED
+    #     return False # Assume invalid if UIA is disabled
         
-        return ""
-
-    """ Check if the cached control is still valid, or if the user closed the window or modified UI """
-    def _is_control_valid(self):
-        try:
-            #See if we can access properties
-            if self.cached_control:
-                #If control invalid, will raise exception
-                self.cached_control.element_info.name #validating the name property, provided by pywinauto 
-                return True #no exception means cach exists and is valid.
-        except Exception:
-            return False 
-        
-        return False
 
     """ Get the name of the current active application """
+    # Still needed for focus tracking and potentially blacklisting
     def _get_current_app_name(self):
         try:
             hwnd = win32gui.GetForegroundWindow() #stores window handle
             _, pid = win32process.GetWindowThreadProcessId(hwnd) #whatever thread ID goes in _ we do not care. only care abt thread pid
             #Pid is a unique numerical id by OS to each running instance of program
             #E.g. think about processes in task manager, they need to run and be managed. PID allows OS to manage them effectively. 
-            return win32process.GetModuleFileNameEx(win32process.OpenProcess( #getting permission for query process info
-                0x1000, False, pid), 0).split('\\')[-1].lower()
-                #getting the url and then splitting into delimiters, only caring abt last token cus that's the app name.
+            
+            # Use PROCESS_QUERY_LIMITED_INFORMATION (0x1000) for better compatibility
+            process_handle = win32process.OpenProcess(0x1000, False, pid)
+            if not process_handle:
+                return "" # Failed to open process
+            
+            try:
+                # GetModuleFileNameEx requires a handle with PROCESS_QUERY_INFORMATION | PROCESS_VM_READ
+                # Fallback or adjust permissions if needed, but 0x1000 is often sufficient for just the name
+                app_path = win32process.GetModuleFileNameEx(process_handle, 0)
+                return app_path.split('\\')[-1].lower()
+            finally:
+                win32process.CloseHandle(process_handle) # Ensure handle is closed
             
         except Exception as e:
+            # print(f"Error getting app name: {e}") # Optional debug
             return ""
 
     """ 
@@ -332,12 +368,14 @@ class SnippetApp(QObject):
                     current_window = win32gui.GetForegroundWindow()
                     if current_window != self.last_active_window:
                         self.last_active_window = current_window
+                        #update last input time - Keep this, useful for other logic potentially
+                        self.last_input_time = time.time() 
                         #resetting buffer.
-                        print("focus changed")
+                        print("focus changed") # Keep this log
                         self.buffer = ""
                 except Exception as e:
                     print(f"Focus tracker error: {e}")
-                time.sleep(0.5) #half a second to match with our polling
+                time.sleep(0.5) #half a second check interval
         
         focus_thread = threading.Thread(target=focus_tracker, daemon=True) #background thread
         focus_thread.start()
