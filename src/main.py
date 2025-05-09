@@ -55,10 +55,15 @@ class SnippetApp(QObject):
         """Monitoring keystrokes in live time for commands"""
         self.buffer = ""
         try:
-            keyboard.on_press(self._track_keystrokes)
-            print("Keyboard listener initialized. Went in track keystrokes")
+            keyboard.hook(self._track_keystrokes)
+            print("Keyboard listener initialized. Went in track keystrokes for press and release")
         except Exception as e:
             print(f"Error initializing keyboard listener: {e}")
+        
+        
+    # def _test_ctrl_events(self, event):
+    #     print(f"--- TEST CTRL EVENT: name={event.name}, event_type={event.event_type} ---")
+    #needed to test if the ctrl key events are being detected properly. Found out that on_release is not working, but hook works
 
 
     # def _ctrl_key_handler(self, event):
@@ -79,12 +84,11 @@ class SnippetApp(QObject):
         if event.name == "ctrl" or event.name == "left_ctrl" or event.name == "right_ctrl":
             if event.event_type == "down":
                 self.ctrl_pressed = True
-                self.last_input_time = time.time() # Update last input time when Ctrl is pressed
-            else:
+            elif event.event_type == "up":
                 self.ctrl_pressed = False
             return
             
-        if event.event_type == "up": #to prevent counting the key press and key release as two separate events
+        if event.event_type == keyboard.KEY_UP: #to prevent counting the key press and key release as two separate events
             return
 
         print(f"Keystroke detected: {event.name}") # Uncomment this if you want to see every key press
