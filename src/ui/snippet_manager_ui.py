@@ -5,7 +5,7 @@ QTextEdit, QVBoxLayout, QWidget, QPushButton, QInputDialog, QMessageBox, QHBoxLa
 import os
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Slot
-from storage import SnippetStorage #importing class
+from ..storage.snippet_storage import SnippetStorage #importing class
 
 class SnippetUI (QMainWindow):
     def __init__(self, storage, parent_app = None, parent=None):
