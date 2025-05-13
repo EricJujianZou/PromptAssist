@@ -1,3 +1,116 @@
+
+# Compiled source
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+*.egg
+*.so # Compiled extensions for Linux/macOS
+
+# C extensions
+*.so
+*.pyd
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib60/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec # PyInstaller spec files
+
+# Python Virtual Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# PyInstaller
+# Usually these files are created by PyInstaller in a project's root directory.
+# If you intend to use PyInstaller later, uncomment the following lines:
+# *.manifest
+# *.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+pytestdebug.log
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+#   For pyenv users, ignore the .python-version file.
+#   For more info, see https://github.com/pyenv/pyenv/issues/134
+.python-version
+
+# IDE / Editor specific files
+.vscode/       # Visual Studio Code (Note: some settings might be shareable, see explanation)
+.idea/         # JetBrains IDEs (PyCharm, IntelliJ, etc.)
+*.project
+*.pydevproject
+*.sublime-workspace
+*.sublime-project
+*.komodoproject
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# Secrets and sensitive configuration files
+# NEVER commit secrets. Use environment variables or a secure vault.
+# This .gitignore is a safety net.
+*.env
+.env.*
+secrets.ini
+credentials.json
+config.local.json # Example for local-only overrides
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*~
+*.bak
+*.swp # Vim swap files
+
 # AI assistance files
 MileStoneFileForLLM.txt
-# Compiled source
