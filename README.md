@@ -16,7 +16,7 @@ A lightweight, cross-platform desktop application that lets you insert frequentl
   Add/edit/delete snippets via a clean GUI with dark/light themes.
 - **📁 Local Storage**  
   Snippets stored in `%APPDATA%/snippet_app/config.json` (no cloud dependency).
-- **📁 Local Storage**
+- **📁 LLM Command Generation**
   Automated prompt generation for LLMs with just a command (e.g., ::PromptEmailTemplate)
 
 ### 🎨 User Experience
@@ -62,19 +62,10 @@ A lightweight, cross-platform desktop application that lets you insert frequentl
 
 # 🛠️ Configuration  
 
-## Customizing Styles  
-Modify the dark theme in `src/ui.py`:  
-
-```python
-app.setStyleSheet("""
-    QMainWindow { background-color: #2b2b2b; }
-    QListWidget, QTextEdit { color: #ffffff; }
-""")
-
 # Command Syntax
 
 - Commands must start with `::` (e.g., `::email`, `::sig`).
-- Avoid spaces or special characters in commands.
+- Avoid triple `:`'s in a row (e.g. :::test) -> known bug fixing now!
 
 # 🤝 Contributing
 
