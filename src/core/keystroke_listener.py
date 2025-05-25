@@ -1,7 +1,10 @@
 import keyboard
 import time
 from PySide6.QtCore import QObject, Signal
+import logging # Add logging import
 from ..storage.snippet_storage import SnippetStorage
+
+logger = logging.getLogger(__name__) # Initialize logger
 
 class KeystrokeListener(QObject):
     command_typed = Signal(str)  # Signal to emit when a command is typed
@@ -20,13 +23,13 @@ class KeystrokeListener(QObject):
             self.buffer = ""
             try:
                 keyboard.hook(self._track_keystrokes)
-                print("Keyboard listener initialized. Went in track keystrokes for press and release")
+                logger.info("Keyboard listener initialized.") # Replaced print
             except Exception as e:
-                print(f"Error initializing keyboard listener: {e}")
+                logger.error(f"Error initializing keyboard listener: {e}") # Replaced print
             
             
         # def _test_ctrl_events(self, event):
-        #     print(f"--- TEST CTRL EVENT: name={event.name}, event_type={event.event_type} ---")
+        #     logger.debug(f"--- TEST CTRL EVENT: name={event.name}, event_type={event.event_type} ---") # Replaced print
         #needed to test if the ctrl key events are being detected properly. Found out that on_release is not working, but hook works
 
 
@@ -43,7 +46,7 @@ class KeystrokeListener(QObject):
 
     def _track_keystrokes(self, event):
         """Using buffer of typed characters and check for commands"""
-        print(f"--- _track_keystrokes CALLED: event_type={event.event_type}, name={event.name} ---") # New top-level log
+        logger.debug(f"--- _track_keystrokes CALLED: event_type={event.event_type}, name={event.name} ---") # Replaced print
 
         if event.name == "ctrl" or event.name == "left_ctrl" or event.name == "right_ctrl":
             if event.event_type == "down":
@@ -55,14 +58,14 @@ class KeystrokeListener(QObject):
         if event.event_type == keyboard.KEY_UP: #to prevent counting the key press and key release as two separate events
             return
 
-        print(f"Keystroke detected: {event.name}") # Uncomment this if you want to see every key press
+        logger.debug(f"Keystroke detected: {event.name}") # Replaced print, changed to debug
 
         #Check last input time:
         self.last_input_time = time.time()
 
         #Handle ctrl combo presses:
         if self.ctrl_pressed and event.name in ('a', 'c', 'v', 'x', 'z'):
-            print("Ctrl+Key detected, clearing buffer.") # Log buffer clear
+            logger.debug("Ctrl+Key detected, clearing buffer.") # Replaced print
             self.buffer=""
             #Do a UIA poll to check input if the user pasted something in - COMMENTED OUT
             # QTimer.singleShot(100, self._verify_buffer_with_uia) #delay so uia updates before we check buffer
@@ -73,43 +76,43 @@ class KeystrokeListener(QObject):
         if char == "backspace":
             if self.buffer: # Only modify if buffer is not empty
                 self.buffer=self.buffer[:-1]
-                print(f"Buffer after backspace: '{self.buffer}'") # Log after backspace
+                logger.debug(f"Buffer after backspace: '{self.buffer}'") # Replaced print
             else:
-                print("Buffer empty, backspace ignored.")
+                logger.debug("Buffer empty, backspace ignored.") # Replaced print
         elif char == "space":
-            print(f"Space detected. Buffer before check: '{self.buffer}'") # Log before space check
+            logger.debug(f"Space detected. Buffer before check: '{self.buffer}'") # Replaced print
             #Check if buffer contains a registered command
             if "::" in self.buffer:
                 parts = self.buffer.split("::")
                 if len(parts) > 1:
                     cmd = "::" + parts[-1]
-                    print(f"Checking for command: '{cmd}'") # Log command check
+                    logger.debug(f"Checking for command: '{cmd}'") # Replaced print
                     if cmd in self.snippet_storage.snippets:
-                        print(f"Command '{cmd}' found! Emitting signal.") # Log command found
+                        logger.info(f"Command '{cmd}' found! Emitting signal.") # Replaced print, changed to info
                         self.command_typed.emit(cmd)
                         self.buffer = ""
-                        print("Buffer cleared after command.") # Log buffer clear
+                        logger.debug("Buffer cleared after command.") # Replaced print
                         return
                     else:
-                        print(f"Command '{cmd}' not found in storage.") # Log command not found
+                        logger.debug(f"Command '{cmd}' not found in storage.") # Replaced print
             
             self.buffer += " " # Add space if no command was triggered
-            print(f"Buffer after space added: '{self.buffer}'") # Log after space added
+            logger.debug(f"Buffer after space added: '{self.buffer}'") # Replaced print
         elif len(char) == 1 and not self.ctrl_pressed:
             #add character to buffer
             self.buffer+=char
-            print(f"Buffer after adding char '{char}': '{self.buffer}'") # Log after adding character
+            logger.debug(f"Buffer after adding char '{char}': '{self.buffer}'") # Replaced print
 
             #limit buffer size if they keep on typing for performance and privacy
             if len(self.buffer) > 100:
                 self.buffer = self.buffer[-50:]
-                print(f"Buffer trimmed: '{self.buffer}'") # Log buffer trimming
+                logger.debug(f"Buffer trimmed: '{self.buffer}'") # Replaced print
         else:
             # Log other keys if needed (like shift, alt, etc.)
-            # print(f"Non-character key ignored: {char}")
+            # logger.debug(f"Non-character key ignored: {char}") # Replaced print
             pass # Ignore other keys like shift, alt, etc. for now
     def clear_buffer(self):
-        print ("keystrokeListener: Buffer cleared")
+        logger.debug ("KeystrokeListener: Buffer cleared") # Replaced print
         self.buffer = ""
         
     def stop_listener(self):

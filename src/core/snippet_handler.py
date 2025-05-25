@@ -10,7 +10,7 @@ class SnippetHandler:
 
         self.snippet_storage = snippet_storage
 
-    def _replace_snippet(self, cmd: str):
+    def replace_snippet(self, cmd: str):
         try:
             
             # Calculate backspaces needed (length of command + 1 for the space)

@@ -1,105 +1,80 @@
 import sys
 from PySide6.QtWidgets import QApplication
-from .core.application import Application # Updated import
+from .core.application import Application 
+import logging
+import logging.handlers # For rotating file handler
+import os
+
+# Determine the application's root directory or a suitable logs directory
+# In a production app, this might be in user's AppData or a system log directory.
+LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
+LOG_FILE_PATH = os.path.join(LOG_DIR, 'app.log')
+
+def setup_logging():
+    """Configures logging for the application."""
+    log_level = logging.DEBUG # Set to INFO for production, DEBUG for development
+    log_format = '%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s:%(lineno)d - %(message)s'
+    date_format = '%Y-%m-%d %H:%M:%S'
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+
+    # Prevent multiple handlers if this function is called again (e.g., in tests or reloads)
+    if root_logger.hasHandlers():
+        root_logger.handlers.clear()
+
+    # Console Handler (StreamHandler)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter(log_format, date_format))
+    console_handler.setLevel(log_level) # Or a different level for console, e.g., logging.INFO
+    root_logger.addHandler(console_handler)
+
+    # File Handler (RotatingFileHandler for better log management)
+    # Rotates logs when they reach 5MB, keeping up to 5 backup logs.
+    file_handler = logging.handlers.RotatingFileHandler(
+        LOG_FILE_PATH, maxBytes=5*1024*1024, backupCount=5, encoding='utf-8'
+    )
+    file_handler.setFormatter(logging.Formatter(log_format, date_format))
+    file_handler.setLevel(log_level) # Typically log everything to file
+    root_logger.addHandler(file_handler)
+
+    # For PySide6/Qt specific logging (optional, can be noisy)
+    # logging.getLogger("PySide6").setLevel(logging.WARNING)
+
 
 if __name__ == "__main__":
+    setup_logging() # Call the setup function
+
+    logger = logging.getLogger(__name__)
+    logger.info("Application starting...")
+    logger.debug(f"Logging to console and to file: {LOG_FILE_PATH}")
+
     app = QApplication(sys.argv)
-    app.setQuitOnLastWindowClosed(False)  # app runs without window
+    app.setQuitOnLastWindowClosed(False)
     
-    # Initialize and run the main application logic from core.application
-    snippet_app = Application() 
-    
-    sys.exit(app.exec())
-    
-
-
-            
-
-
-
-# """ 
-# * UIA PART - COMMENTED OUT
-# """
-
-# """ Initialize UIA polling for text content verification """
-# def _init_uia_polling(self):
-#     self.poll_timer = QTimer()
-#     self.poll_timer.timeout.connect(self._verify_buffer_with_uia)
-
-#     #base polling rate of 500ms, should only use around 3-5% CPU if performing buffer check
-#     self.polling_interval = 500
-#     self.poll_timer.start(self.polling_interval)
+    try:
+        snippet_app = Application() 
+        exit_code = app.exec()
+        logger.info(f"Application exited with code {exit_code}.")
+        sys.exit(exit_code)
+    except Exception as e:
+        logger.critical(f"Unhandled exception at top level: {e}", exc_info=True)
+        sys.exit(1)
 
 
 
-# """ Poll the active text field and verify buffer """
-# def _verify_buffer_with_uia(self):
-#     if not self._should_perform_uia_check():
-#         return    
-#     try:
-#         # Get the text from the active control
-#         text = self._get_text_from_focused_control()
-#         # print("Buffer: '{}'".format(self.buffer)) # Optional debug
-#         # print("UIA text: '{}'".format(text[:50] if text else "")) # Optional debug
-
-#         # Early exit if no text
-#         if not text:
-#             # self.buffer = "" # Maybe don't clear buffer if UIA fails?
-#             return
-        
-#         # Buffer comparison
-#         if self.buffer and not text.endswith(self.buffer):
-#             print("Buffer doesn't match UIA text, resetting buffer")
-#             self.buffer = ""
-
-#     except Exception as e:
-#         # UIA access failed
-#         print(f"UIA verification failed: {e}")
-
-#     # Adjust polling rate based on typing activity
-#     self._adjust_polling_rate()
-
-# """ Adjust the polling rate if the user is typing or not """
-# def _adjust_polling_rate(self):
-#     time_since_input = time.time() - self.last_input_time
-
-#     if time_since_input < 2.0: #They're typing. 2 second window accounts for slow typers
-#         if self.polling_interval != 100:
-#             self.polling_interval = 100
-#             self.poll_timer.setInterval(self.polling_interval)
-#     else: #They're not typing
-#         if self.polling_interval != 500:
-#             self.polling_interval = 500
-#             self.poll_timer.setInterval(self.polling_interval)
-
-# """ Check if we should do UIA check """
-# def _should_perform_uia_check(self):
-#     #Skip if the buffer is empty (they not typing) and no recent activity
-#     # if not self.buffer and (time.time() - self.last_input_time) > 2.0:
-#     #     return False
-
-#     #Skip if the active window is blacklisted
-#     current_app = self._get_current_app_name() #not use active app cus blacklisted is blacklisted regardless of which window is active
-#     if current_app in self.blacklisted_apps:
-#         return False
-
-#     return True # Simplified for now if UIA is minimal
-
-# """ Get the text from the focused control """
-# def _get_text_from_focused_control(self):
-#     """Get text from the currently focused control with improved focus detection"""
-#     # THIS ENTIRE METHOD IS COMMENTED OUT AS UIA IS DISABLED
-#     return "" # Return empty string if UIA is disabled
-
-# """ Check if the cached control is still valid, or if the user closed the window or modified UI """
-# def _is_control_valid(self):
-#     # THIS ENTIRE METHOD IS COMMENTED OUT AS UIA IS DISABLED
-#     return False # Assume invalid if UIA is disabled
-        
-
-    
 
 
-    
 
-    
+
+
+
+
+
+
+
+
+
+

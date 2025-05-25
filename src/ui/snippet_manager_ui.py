@@ -2,6 +2,10 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QListWidget, 
 QTextEdit, QVBoxLayout, QWidget, QPushButton, QInputDialog, QMessageBox, QHBoxLayout
 )
+"""
+TODO - add a search bar to filter the snippets
+TODO - remove Qapplication from the imports
+"""
 import os
 from PySide6.QtGui import QIcon
 from PySide6.QtCore import Slot
@@ -99,9 +103,9 @@ class SnippetUI (QMainWindow):
         else:
             QMessageBox.warning(self, "No snippet selected", "Please select a snippet to save")
             return
-        if self.parent_app:
+        """ if self.parent_app:
             if hasattr(self.parent_app, '_refresh_commands'):
-                self.parent_app._refresh_commands() #refresh in main app so the storage are linked
+                self.parent_app._refresh_commands() #refresh in main app so the storage are linked """
 
     @Slot()
     def _new_snippet(self):
@@ -117,8 +121,8 @@ class SnippetUI (QMainWindow):
                 return
         else:
             return
-        if self.parent_app:
-            self.parent_app._refresh_commands() #refresh in main app so the storage are linked
+        """ if self.parent_app:
+            self.parent_app._refresh_commands() #refresh in main app so the storage are linked """
 
     #method to delete a snippet
     @Slot()
@@ -139,8 +143,12 @@ class SnippetUI (QMainWindow):
                 return
         else:
             QMessageBox.warning(self, "No snippet selected", "Please select a snippet to delete")
-        if self.parent_app:
-            self.parent_app._refresh_commands()
+        """ if self.parent_app:
+            self.parent_app._refresh_commands() 
+            TODO - Change this method call to a signal emitted from snippet UI, or determine if signal is even needed
+            in the status quo, signal is not needed
+            """
+
 
 
 def load_stylesheet(file_path):
@@ -151,6 +159,7 @@ def load_stylesheet(file_path):
     except FileNotFoundError as e:
         print (f"Error loading stylesheet: {e}")
         return ""
+        
 if __name__ == "__main__":
     app = QApplication([])
     

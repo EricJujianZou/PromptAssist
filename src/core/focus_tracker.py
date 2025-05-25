@@ -1,10 +1,13 @@
+import logging # Add logging import
 import threading
 import time
 import win32gui
-import win32process
+#import win32process. Commented out due to focus tracking not needing process info directly and open process creating bugs and I can not fix. Just abandon for POC
 from PySide6.QtCore import QObject
 
 from .keystroke_listener import KeystrokeListener # For type hinting
+
+logger = logging.getLogger(__name__) # Add logger instance
 
 class FocusTracker:
     def __init__(self, keystroke_listener, blacklisted_apps=None):
@@ -15,7 +18,7 @@ class FocusTracker:
         :param blacklisted_apps: A list of application executable names to ignore for buffer clearing.
         """
         self.keystroke_listener: KeystrokeListener = keystroke_listener # With type hint
-        self.keystroke_listener = keystroke_listener
+        
         self.blacklisted_apps = blacklisted_apps if blacklisted_apps is not None else []
         self.last_active_window = None
         self._running = False
@@ -23,7 +26,7 @@ class FocusTracker:
 
 
     """ Get the name of the current active application """
-    # Still needed for focus tracking and potentially blacklisting
+    """ # Still needed for focus tracking and potentially blacklisting
     def _get_current_app_name(self):
         try:
             hwnd = win32gui.GetForegroundWindow() #stores window handle
@@ -45,8 +48,8 @@ class FocusTracker:
                 win32process.CloseHandle(process_handle) # Ensure handle is closed
             
         except Exception as e:
-            # print(f"Error getting app name: {e}") # Optional debug
-            return ""
+            logger.error(f"Error getting app name: {e}") # Optional debug
+            return "" """
 
     """ 
     *Implement Focus tracking
@@ -54,27 +57,27 @@ class FocusTracker:
     def _focus_tracker_loop(self):
 
         """Main tracking loop for focus changes"""
-        print("Focus tracker started")
+        logger.info("Focus tracker started") 
 
         while self._running:
             try:
-                current_app_name = self._get_current_app_name()
+                #current_app_name = self._get_current_app_name()
                 current_window_handle = win32gui.GetForegroundWindow()
 
                 if current_window_handle != self.last_active_window:
-                    print(f"FocusTracker: Focus changed. New app: '{current_app_name if current_app_name else 'Unknown'}'")
+                    logger.info(f"FocusTracker: Focus changed. New window handle: {current_window_handle}") 
                     self.last_active_window = current_window_handle
-
-                    if current_app_name and current_app_name in self.blacklisted_apps:
-                        print(f"FocusTracker: App '{current_app_name}' is blacklisted. Buffer not cleared.")
+                    
+                    """ if current_app_name and current_app_name in self.blacklisted_apps:
+                        logger.info(f"FocusTracker: App \'{current_app_name}\' is blacklisted. Buffer not cleared.") 
                         pass
-                    else:
-                        print("FocusTracker: Buffer cleared due to focus change.")
-                        self.keystroke_listener.clear_buffer()
+                    else: """
+                    logger.info("FocusTracker: Buffer cleared due to focus change.") 
+                    self.keystroke_listener.clear_buffer()
             except Exception as e:
-                print("Error in focus tracker loop:", e)
+                logger.error(f"Error in focus tracker loop: {e}") 
             time.sleep(0.5)
-        print("Focus tracker stopped")
+        logger.info("Focus tracker stopped") 
 
     def start(self):
         """Starts the focus tracking thread."""
@@ -82,9 +85,9 @@ class FocusTracker:
             self._running = True
             self.thread = threading.Thread(target=self._focus_tracker_loop, daemon=True) #daemon means background thread, will not block program exit
             self.thread.start()
-            print("Focus tracker thread started")
+            logger.info("Focus tracker thread started") 
         else:
-            print("Focus tracker thread already running")
+            logger.warning("Focus tracker thread already running") 
     
     def stop(self):
         """Stops the focus tracking thread."""
@@ -93,7 +96,7 @@ class FocusTracker:
             if self.thread and self.thread.is_alive():
                 self.thread.join(timeout=1.0)
 
-            print("Focus tracker thread stopped")
+            logger.info("Focus tracker thread stopped") 
 
 
 
