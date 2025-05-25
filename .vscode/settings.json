@@ -1,0 +1,7 @@
+{
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "text": "You are an expert Git commit message generator. Given the following change description, craft a professional commit message that follows industry best practices: 1. Prefix with a Conventional Commits type (`feat`, `fix`, `docs`, `chore`, etc.)2. Optionally include a scope in parentheses. 3. Use an imperative-mood subject line of ≤50 characters, capitalized, no trailing period. 4. Separate the subject from the body with a blank line. 5. Wrap body lines at 72 characters. 6. In the body, explain *what* changed and *why*, avoiding implementation details. 7. If this change introduces a breaking API change, include a `BREAKING CHANGE:` section in the body."
+        }
+    ]   
+}
