@@ -7,6 +7,7 @@ from ..ui.snippet_manager_ui import SnippetUI
 from .keystroke_listener import KeystrokeListener
 from .focus_tracker import FocusTracker 
 from .snippet_handler import SnippetHandler 
+from .llm_prompt_handler import LLMPromptHandler
 import signal
 import time 
 import os
@@ -33,6 +34,7 @@ class Application(QObject):
         self.keystroke_listener = KeystrokeListener(self.storage)
         self.focus_tracker = FocusTracker(self.keystroke_listener, self.blacklisted_apps)
         self.snippet_handler = SnippetHandler(self.storage)
+        self.llm_handler = LLMPromptHandler()
         self._init_tray_icon()
         # self._init_uia_polling() # COMMENTED OUT
         self.focus_tracker.start()
@@ -40,7 +42,7 @@ class Application(QObject):
 
         #Connect signals
         self.keystroke_listener.command_typed.connect(self.snippet_handler.replace_snippet) # Connect the command_typed signal to the snippet handler
-
+        self.keystroke_listener.llm_command_detected.connect(self.llm_handler.handle_llm_prompt_command) #Connect the llm command to the llm handler method
         #signal handlers for termination
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
