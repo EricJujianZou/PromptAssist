@@ -1,4 +1,5 @@
 PySide6
 keyboard
 psutil
-pywin32
+python-dotenv
+pyperclip
