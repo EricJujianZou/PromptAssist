@@ -1,16 +1,14 @@
 import logging
 from PySide6.QtCore import QObject, Slot
-import keyboard
 import time
 import os 
 from dotenv import load_dotenv
-import pyperclip
 import winsound
 
+from ..keyboard_utils import simulate_keystrokes, clipboard_copy
+
 #Vertex Ai Imports
-from google.cloud import aiplatform
-from google import genai
-from google.genai.types import GenerateContentConfig, HttpOptions
+
 import vertexai
 from vertexai.generative_models import GenerativeModel, GenerationConfig as VertexGenerationConfig
 
@@ -47,6 +45,7 @@ class LLMPromptHandler(QObject):
         if not self.config.SYSTEM_INSTRUCTION:
             logger.warning("SYSTEM_INSTRUCTION is empty or not loaded from .env. Model may not behave as expected.")
         self._initialize_vertex_client()
+        
         
 
     def _initialize_vertex_client(self):
@@ -112,38 +111,7 @@ class LLMPromptHandler(QObject):
         logger.error("Max retries reached for API error") 
         return None
     
-    def _simulate_keystrokes(self,text_to_type: str="", backspaces:int=0):
-        """
-        Simulates keystrokes for backspacing and optionally typing single-line text.
-
-        Newline characters in text_to_type will be replaced with spaces
-        to prevent unintended "Enter" key simulations by keyboard.write().
-
-        Args:
-            text_to_type (str, optional): The text to type. Defaults to "".
-                                          If only backspacing is needed, this can be omitted.
-            backspaces (int, optional): The number of backspace keys to simulate. Defaults to 0.
-        """
-        try:
-            if backspaces>0:
-                for back in range (backspaces):
-                    keyboard.send('backspace')
-                    #time.sleep(0.01)
-                    #Try without delay first, if it's not reliable then add it back
-            if text_to_type:
-                safe_text_to_type = text_to_type.replace("\n", " ")
-                keyboard.write(text_to_type)
-                time.sleep(0.005)
-            
-            log_message_parts = []
-            if backspaces > 0:
-                log_message_parts.append(f"simulated {backspaces} backspaces")
-            if text_to_type:
-                log_message_parts.append(f"typed message: {safe_text_to_type}")
-            if log_message_parts:
-                logger.debug(". ".join(log_message_parts))
-        except Exception as e:
-            logger.error(f"Attempted to simulate typing, error occurred: {e}", exc_info=True)
+    
     
     @Slot(str)
     def handle_llm_prompt_command(self, user_query: str):
@@ -153,7 +121,7 @@ class LLMPromptHandler(QObject):
 
         if not self.vertex_client:
             logger.error("Vertex AI client not initialized, can not handle LLM prompt", exc_info=True)
-            self._simulate_keystrokes("[LLM Service Not Initialized]", len(original_trigger_text_approx)+1)
+            simulate_keystrokes("[LLM Service Not Initialized]", len(original_trigger_text_approx)+1)
             return
         generating_feedback_text="Generating prompt..."
 
@@ -161,7 +129,7 @@ class LLMPromptHandler(QObject):
             logger.debug("Showing feedback to user of 'Generating prompt...'")
             backspaces_for_feedback = len(original_trigger_text_approx)+1
             
-            self._simulate_keystrokes(generating_feedback_text, backspaces_for_feedback)
+            simulate_keystrokes(generating_feedback_text, backspaces_for_feedback)
         except Exception as e:
             logger.error(f"Error showing 'Generating...' feedback {e}", exc_info=True)
 
@@ -173,27 +141,8 @@ class LLMPromptHandler(QObject):
 
         if augmented_prompt_:
             logger.info("augmented prompt received. Replacing text")
-            self._simulate_keystrokes(backspaces=backspaces_for_call)
-            self._clipboard_and_notify(augmented_prompt_)
-        else:
-            logger.warning("Failed to get augmented prompt, displaying error")
-            error_msg = "[Prompt Generation Failed. Try Again]"
-            self._simulate_keystrokes(error_msg, backspaces_for_call)
-
-
-
-
-    def _clipboard_and_notify(self, text_to_copy: str):
-        """
-        feature: copy the API returned text to the clipboard, and notify the user that they can paste at any time.
-        This feature update gives more freedom for the user to decide when to use the prompt based on their workflow
-
-    
-        """
-        try: 
-            pyperclip.copy(text_to_copy)
-            logger.debug(f"Copied to cliobard: {text_to_copy[:100]}")
-
+            simulate_keystrokes(backspaces=backspaces_for_call)
+            clipboard_copy(augmented_prompt_)
             try:
                 winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
                 logger.debug("played notif sound (winsound)")
@@ -201,9 +150,14 @@ class LLMPromptHandler(QObject):
                 logger.warning(f"Could not play winsound notif, falling back to bell sound: {e_sound}")
                 print("\a", flush=True)
                 logger.debug("Played notif sound (system bell \a).")
-        except pyperclip.PyperclipException as e_pyperclip:
-            logger.error(f"Pyperclip error: Failed to copy text {e_pyperclip}", exc_info=True)
-        except Exception as e:
-            logger.error(f"Error happened during clipboard copy or sound notif: {e}", exc_info = True)
+        else:
+            logger.warning("Failed to get augmented prompt, displaying error")
+            error_msg = "[Prompt Generation Failed. Try Again]"
+            simulate_keystrokes(error_msg, backspaces_for_call)
+
+
+
+
+    
 
         
