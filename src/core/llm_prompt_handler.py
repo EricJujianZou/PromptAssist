@@ -27,17 +27,15 @@ class LLMConfig:
     #Must cast these numeric values as int and float, because the .env treats all values as strings
     max_tokens_str = os.getenv('MAX_OUTPUT_TOKENS')
     MAX_OUTPUT_TOKENS = int(max_tokens_str) if max_tokens_str else 1000
-    
     temp_str = os.getenv('TEMPERATURE')
     TEMPERATURE = float(temp_str) if temp_str else 0.1
-    
     retry_str = os.getenv('API_RETRY_COUNT')
     API_RETRY_COUNT = int(retry_str) if retry_str else 2
     print(f"--- Debug: LLM_MODEL_NAME from env: {LLM_MODEL_NAME}")
 
 class LLMPromptHandler(QObject):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent) #question: why we use super() init if parent is None?
         self.vertex_client=None
         self.config = LLMConfig()
         if not self.config.VERTEX_AI_PROJECT:
@@ -53,7 +51,6 @@ class LLMPromptHandler(QObject):
             vertexai.init(
                 project=self.config.VERTEX_AI_PROJECT,
                 location=self.config.VERTEX_AI_LOCATION
-
             )
             self.vertex_client=GenerativeModel(
                 
