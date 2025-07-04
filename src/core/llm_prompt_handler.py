@@ -20,7 +20,7 @@ class LLMConfig:
     #loading llm info from .env
     VERTEX_AI_PROJECT = os.getenv('VERTEX_AI_PROJECT')
     VERTEX_AI_LOCATION = os.getenv('VERTEX_AI_LOCATION')  
-    LLM_MODEL_NAME = os.getenv('LLM_MODEL_NAME')
+    LLM_MODEL_NAME = os.getenv('LLM_MODEL_NAME') or ""
     SYSTEM_INSTRUCTION = "You are an expert prompt engineer. Your task is to transform the following users natural language request into a highly effective, detailed, and well-structured prompt suitable for a large language model. Prioritize result optimizationwith conciseness as the second priority.Ensure the generated prompt elicits a comprehensive and accurate response.Output ONLY the refined prompt. Do not include any of your own conversational text, thinking,explanations, apologies, or any text other than the prompt itself.The generated prompt should be complete and ready for immediate input into a large language model."
     print(f"LLMConfig - Loaded SYSTEM_INSTRUCTION (first 100 chars): '{SYSTEM_INSTRUCTION[:500]}...'") # Log it
 
