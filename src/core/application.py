@@ -1,5 +1,5 @@
 import keyboard
-from PySide6.QtCore import QObject, Signal
+from PySide6.QtCore import QObject, Slot
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon
 from ..storage.snippet_storage import SnippetStorage
@@ -7,18 +7,19 @@ from ..ui.snippet_manager_ui import SnippetUI
 from .keystroke_listener import KeystrokeListener
 from .focus_tracker import FocusTracker 
 from .snippet_handler import SnippetHandler 
-from .llm_prompt_handler import LLMPromptHandler
+from .llm_prompt_handler import LLMHandler
+from ..keyboard_utils import clipboard_copy, simulate_keystrokes
 import signal
-import time 
 import os
 import logging # Import logging
+import winsound
 
 logger = logging.getLogger(__name__) # Get a logger for this module
 
 #QObject is the base class for all Qt objects
 #inherit event loop and signal slot mechanism
 class Application(QObject):
-    
+     
     def __init__(self):
         super().__init__()#initialize QObject from super class constructor
         logger.info("Initializing Application...")
@@ -34,19 +35,45 @@ class Application(QObject):
         self.keystroke_listener = KeystrokeListener(self.storage)
         self.focus_tracker = FocusTracker(self.keystroke_listener, self.blacklisted_apps)
         self.snippet_handler = SnippetHandler(self.storage)
-        self.llm_handler = LLMPromptHandler()
         self._init_tray_icon()
+        self.llm_handler = LLMHandler()
         # self._init_uia_polling() # COMMENTED OUT
         self.focus_tracker.start()
         logger.info("Application components initialized.")
 
         #Connect signals
         self.keystroke_listener.command_typed.connect(self.snippet_handler.replace_snippet) # Connect the command_typed signal to the snippet handler
-        self.keystroke_listener.llm_command_detected.connect(self.llm_handler.handle_llm_prompt_command) #Connect the llm command to the llm handler method
+
+        #llm related signal connections
+        self.keystroke_listener.llm_command_detected.connect(self.llm_handler.get_prompt_from_backend) #Connect the llm command to the backend
+        self.llm_handler.prompt_received.connect(self.handle_llm_augmented_prompt) 
+
         #signal handlers for termination
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
         logger.info("Signal handlers registered.")
+    
+    @Slot(str)
+    def handle_llm_augmented_prompt(self, augmented_prompt: str):
+
+
+        backspaces_for_call = len(self.keystroke_listener.generating_text)
+
+        if augmented_prompt:
+            logger.info("augmented prompt received. Replacing text")
+            simulate_keystrokes(backspaces=backspaces_for_call)
+            clipboard_copy(augmented_prompt)
+            try:
+                winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+                logger.debug("played notif sound (winsound)")
+            except Exception as e_sound:
+                logger.warning(f"Could not play winsound notif, falling back to bell sound: {e_sound}")
+                print("\a", flush=True)
+                logger.debug("Played notif sound (system bell \a).")
+        else:
+            logger.warning("Failed to get augmented prompt, displaying error")
+            error_msg = "[Prompt Generation Failed. Try Again]"
+            simulate_keystrokes(error_msg, backspaces_for_call)
     def _init_tray_icon(self):
         # Set up tray icon with quit option
         logger.debug("Initializing tray icon...")
