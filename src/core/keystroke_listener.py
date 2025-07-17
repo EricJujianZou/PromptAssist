@@ -120,8 +120,16 @@ class KeystrokeListener(QObject):
 
             #limit buffer size if they keep on typing for performance and privacy
             if len(self.buffer) > 200: #increased buffer cap to 200 chars because expecting longer commands from users for the LLM feature
-                self.buffer = self.buffer[-50:]
-                logger.debug(f"Buffer trimmed: '{self.buffer}'") 
+                if self.buffer.startswith("::Prompt("):
+                    #higher buffer limit of 1000 chars
+                    if len(self.buffer)> 1000:
+                        #trim:
+                        self.buffer = self.buffer[-200:]
+                        logger.debug(f"Trimmed buffer of ::prompt query because it's over 1000 characters")
+                else:
+
+                    self.buffer = self.buffer[-50:]
+                    logger.debug(f"Buffer trimmed: '{self.buffer}'") 
         else:
             # Log other keys if needed (like shift, alt, etc.)
             # logger.debug(f"Non-character key ignored: {char}") 
