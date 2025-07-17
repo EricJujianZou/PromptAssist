@@ -83,7 +83,7 @@ When asked to explain code, use a direct and structured format like this:
 - **Design:** Explain the primary reason for this structure.
   - _Example:_ Function `calculate_area` used for reusability and clarity.
 
-## 4. User's Known Concepts (Do Not Explain These)
+## 4. User's Known Concepts (Do NOT Explain These)
 
 This section lists Python concepts the user is already familiar with, generally reflecting knowledge gained from a standard Ontario high school computer science curriculum (ICS3U/ICS4U).
 

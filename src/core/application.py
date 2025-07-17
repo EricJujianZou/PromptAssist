@@ -3,7 +3,10 @@ from PySide6.QtCore import QObject, Slot
 from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
 from PySide6.QtGui import QIcon
 from ..storage.snippet_storage import SnippetStorage
+from ..storage.settings_storage import SettingsStorage
+from ..storage.history_storage import HistoryStorage
 from ..ui.snippet_manager_ui import SnippetUI
+from ..ui.frameless_window import FramelessWindow
 from .keystroke_listener import KeystrokeListener
 from .focus_tracker import FocusTracker 
 from .snippet_handler import SnippetHandler 
@@ -24,11 +27,18 @@ class Application(QObject):
         super().__init__()#initialize QObject from super class constructor
         logger.info("Initializing Application...")
         self.storage = SnippetStorage()
+        self.settings = SettingsStorage()
+        self.history = HistoryStorage()
+        self.main_window = None # To hold the reference to the UI window
         # self.cached_control = None #implement cache control, which stores reference to the active UI control to reduce UIA overhead - COMMENTED OUT
         #App compatibility, works with most but for some can not detect the input content
-        
-        self.blacklisted_apps = ["powershell.exe", "cmd.exe", "putty.exe"] # Still relevant for focus tracking/buffer clearing
-    
+        self.is_request_in_flight = False
+
+        # Load settings into application properties, ensuring correct types
+        self.blacklisted_apps = self.settings.get("blacklisted_apps", [])
+        self.clear_clipboard = bool(self.settings.get("clear_clipboard_on_paste", False))
+
+        self.generating_text = "Generating Prompt..."
         """
         TODO - sort out the blacklist if it's even needed
         """
@@ -45,101 +55,155 @@ class Application(QObject):
         self.keystroke_listener.command_typed.connect(self.snippet_handler.replace_snippet) # Connect the command_typed signal to the snippet handler
 
         #llm related signal connections
-        self.keystroke_listener.llm_command_detected.connect(self.llm_handler.get_prompt_from_backend) #Connect the llm command to the backend
+        self.keystroke_listener.llm_command_detected.connect(self.on_llm_command) #Connect the llm command detection to the visual feedback and backend calling
         self.llm_handler.prompt_received.connect(self.handle_llm_augmented_prompt) 
+        self.llm_handler.prompt_failed.connect(self.handle_llm_failure)
 
         #signal handlers for termination
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
         logger.info("Signal handlers registered.")
-    
-    @Slot(str)
-    def handle_llm_augmented_prompt(self, augmented_prompt: str):
 
+    @Slot()
+    def show_snippet_manager(self):
+        """Create and show the snippet manager UI."""
+        if self.main_window is None or not self.main_window.isVisible():
+            logger.debug("Creating or showing main window.")
+            
+            # 1. Create the content widget first, passing all storage objects
+            dashboard_content = SnippetUI(self.storage, self.settings, self.history)
+            
+            # 2. Wrap it in our custom frameless window
+            self.main_window = FramelessWindow(dashboard_content)
 
-        backspaces_for_call = len(self.keystroke_listener.generating_text)
-
-        if augmented_prompt:
-            logger.info("augmented prompt received. Replacing text")
-            simulate_keystrokes(backspaces=backspaces_for_call)
-            clipboard_copy(augmented_prompt)
+            # 3. Load and apply the stylesheet to the main window
             try:
-                winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
-                logger.debug("played notif sound (winsound)")
-            except Exception as e_sound:
-                logger.warning(f"Could not play winsound notif, falling back to bell sound: {e_sound}")
-                print("\a", flush=True)
-                logger.debug("Played notif sound (system bell \a).")
+                # Correct path from src/core/ to src/
+                style_path = os.path.join(os.path.dirname(__file__), '..', 'style.qss')
+                with open(style_path, "r") as f:
+                    stylesheet = f.read()
+                self.main_window.setStyleSheet(stylesheet)
+                logger.debug(f"Stylesheet loaded for main window from {style_path}")
+            except Exception as e:
+                logger.error(f"Error loading stylesheet for main window: {e}")
+
+            self.main_window.show()
+            self.main_window.activateWindow() # Bring to front
         else:
-            logger.warning("Failed to get augmented prompt, displaying error")
-            error_msg = "[Prompt Generation Failed. Try Again]"
-            simulate_keystrokes(error_msg, backspaces_for_call)
-    def _init_tray_icon(self):
-        # Set up tray icon with quit option
-        logger.debug("Initializing tray icon...")
-        try: 
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            icon_path = os.path.join(current_dir, '..','icons','logo.png')
+            logger.debug("Main window already visible. Activating window.")
+            self.main_window.activateWindow() # Bring to front if already open
+    
+    @Slot(str, str)
+    def on_llm_command(self, original_command: str, user_query: str):
+        if self.is_request_in_flight:
+            logger.warning("ignore request because llm command is already in flight")
+            winsound.PlaySound("SystemHand", winsound.SND_ALIAS | winsound.SND_ASYNC)
+            return # Stop processing immediately
+        
+        self.is_request_in_flight = True
+        logger.info(f"Received llm command: {original_command}")
+        #Type the generating text
+        try:
             
-            self.tray_icon = QSystemTrayIcon(QIcon(icon_path))
-            if self.tray_icon.icon().isNull(): # Check if icon loaded successfully
-                    logger.warning(f"Icon file not found or invalid at {icon_path}. File exists: {os.path.exists(icon_path)}")
-                    raise FileNotFoundError(f"Icon file not found or invalid at{icon_path}")
-            self.tray_icon.setToolTip("Snippet App") # Simpler tooltip for now
-            logger.info(f"Tray icon loaded from {icon_path}")
+            simulate_keystrokes(self.generating_text, len(original_command)+1)
         except Exception as e:
-            logger.error(f"Error initializing tray icon: {e}. Using default.", exc_info=True)
-            # Fallback to a standard system icon
-            self.tray_icon = QSystemTrayIcon(QIcon.fromTheme("document-new")) 
-            self.tray_icon.setToolTip("Snippet App (Default Icon)")
-            
-        # Create a menu for the tray icon
-        tray_menu = QMenu()
-
-        #Open Snippet Manager option
-        open_action = tray_menu.addAction("Open Snippet Manager")
-        open_action.triggered.connect(self._open_snippet_manager)
-
-        #Separator
-        tray_menu.addSeparator()
+            logger.error(f"Error showing the 'generating...' visual feedback: {e}", exc_info = True)
         
-        #Quit action
-        quit_action = tray_menu.addAction("Quit")
-        quit_action.triggered.connect(self._quit_app)
+        #call the backend, passing the original query for history
+        self.llm_handler.get_prompt_from_backend(user_query, original_command)
+        
 
-        self.tray_icon.setContextMenu(tray_menu)
+        
+
+    @Slot(str, str)
+    def handle_llm_augmented_prompt(self, augmented_prompt: str, original_query: str):
+
+        try:
+            backspaces_for_call = len(original_query)
+
+            if augmented_prompt:
+                # Add to history
+                self.history.add_entry(query=original_query, result=augmented_prompt)
+
+                logger.info("augmented prompt received. Replacing text")
+                simulate_keystrokes(backspaces=backspaces_for_call)
+                clipboard_copy(augmented_prompt, clear_after=self.clear_clipboard)
+                try:
+                    winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+                    logger.debug("played notif sound (winsound)")
+                except Exception as e_sound:
+                    logger.warning(f"Could not play winsound notif, falling back to bell sound: {e_sound}")
+                    print("\a", flush=True)
+                    logger.debug("Played notif sound (system bell \a).")
+            # This 'else' case is now handled by handle_llm_failure
+        finally:
+            self.is_request_in_flight = False
+            logger.info("LLM request flight lock released.")
+
+    @Slot(str)
+    def handle_llm_failure(self, error_message: str):
+        """Handles the visual feedback when a prompt generation fails."""
+        try:
+            logger.warning(f"Failed to get augmented prompt, displaying error: {error_message}")
+            error_display_text = f"[Prompt Failed: {error_message}]"
+            backspaces_for_call = len(self.generating_text)
+            simulate_keystrokes(error_display_text, backspaces_for_call)
+        except Exception as e:
+            logger.error(f"Error displaying failure message: {e}", exc_info=True)
+        finally:
+            self.is_request_in_flight = False
+            logger.info("LLM request flight lock released after failure.")
+
+    @Slot(QSystemTrayIcon.ActivationReason)
+    def on_tray_icon_activated(self, reason):
+        """Handles activation events on the tray icon."""
+        # Show dashboard on double-click, while right-click shows context menu
+        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+            logger.debug("Tray icon double-clicked, showing manager.")
+            self.show_snippet_manager()
+
+    def _init_tray_icon(self):
+        """Initializes the system tray icon and its context menu."""
+        logger.debug("Initializing system tray icon.")
+        self.tray_icon = QSystemTrayIcon(self)
+        
+        # Set icon
+        try:
+            icon_path = os.path.join(os.path.dirname(__file__), '..', 'icons', 'logo.png')
+            self.tray_icon.setIcon(QIcon(icon_path))
+            logger.debug(f"Tray icon set from {icon_path}")
+        except Exception as e:
+            logger.error(f"Failed to load tray icon: {e}", exc_info=True)
+
+        # Create context menu
+        self.menu = QMenu()
+
+        # Add action to show snippet manager
+        self.show_action = self.menu.addAction("PromptAssist Dashboard")
+        self.show_action.triggered.connect(self.show_snippet_manager)
+
+        self.menu.addSeparator()
+
+        # Add quit action
+        self.quit_action = self.menu.addAction("Quit")
+        self.quit_action.triggered.connect(self.quit_application)
+
+        self.tray_icon.setContextMenu(self.menu)
+
+        # Connect the activated signal for double-click handling
+        self.tray_icon.activated.connect(self.on_tray_icon_activated)
+
         self.tray_icon.show()
-        logger.debug("Tray icon setup complete and shown.")
+        logger.info("System tray icon is now visible.")
 
-    def _quit_app(self):
-        logger.info("Quitting application...")
-        if hasattr(self, 'keystroke_listener'):
-            self.keystroke_listener.stop_listener()
-        if hasattr(self, 'focus_tracker'):
-            self.focus_tracker.stop()
-        
+    def quit_application(self):
+        """Quits the application."""
+        logger.info("Quit action triggered. Shutting down.")
         QApplication.quit()
-        logger.info("QApplication quit.")
 
-    def _open_snippet_manager(self):
-        logger.debug("Attempting to open snippet manager UI...")
-        #lazy loading to avoid circular imports
-        from ..ui.snippet_manager_ui import SnippetUI
-        #if ui is not already open, open it
-        if not hasattr(self, 'ui_window') or not self.ui_window.isVisible(): # Check if UI exists and is visible, renamed self.ui to self.ui_window
-            logger.info("Snippet manager UI not found or not visible, creating new instance.")
-            self.ui_window = SnippetUI(storage=self.storage, parent_app=self)
-            self.ui_window.show()
-        else:
-            logger.debug("Snippet manager UI already exists, showing and raising.")
-            self.ui_window.show()
-            self.ui_window.raise_()
-            self.ui_window.activateWindow()
-     #quitting app:
     def _handle_signal(self, signum, frame):
-        """Handle termination signals"""
-        logger.info(f"Received signal {signum}, terminating application...")
-        self._quit_app()
+        logger.warning(f"Signal {signum} received. Shutting down.")
+        self.quit_application()
 
 
     # def _register_commands(self):

@@ -29,10 +29,6 @@ async def generate_prompt(request: PromptRequest)->PromptResponse:
         logger.error(f"Unexpected error: {e}")
         raise HTTPException(status_code = 500, detail = "Internal server error")
 
-    
-    
-    
-
 
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon_no_content():
