@@ -3,12 +3,13 @@ import time
 from PySide6.QtCore import QObject, Signal
 import logging # Add logging import
 from ..storage.snippet_storage import SnippetStorage
+from ..keyboard_utils import simulate_keystrokes, clipboard_copy
 
 logger = logging.getLogger(__name__) # Initialize logger
 
 class KeystrokeListener(QObject):
     command_typed = Signal(str)  # Signal to emit when a command is typed
-    llm_command_detected = Signal(str)
+    llm_command_detected = Signal(str, str)
 
     def __init__(self, snippet_storage: SnippetStorage):
         super().__init__()
@@ -16,6 +17,7 @@ class KeystrokeListener(QObject):
         self.buffer = ""
         self.ctrl_pressed = False
         self.last_input_time = time.time()
+        
 
         self._init_keyboard_listener()
 
@@ -68,8 +70,6 @@ class KeystrokeListener(QObject):
         if self.ctrl_pressed and event.name in ('a', 'c', 'v', 'x', 'z'):
             logger.debug("Ctrl+Key detected, clearing buffer.") 
             self.buffer=""
-            #Do a UIA poll to check input if the user pasted something in - COMMENTED OUT
-            # QTimer.singleShot(100, self._verify_buffer_with_uia) #delay so uia updates before we check buffer
             return
 
         """ Handle Character Input """
@@ -82,36 +82,37 @@ class KeystrokeListener(QObject):
                 logger.debug("Buffer empty, backspace ignored.") 
         elif char == "space":
             logger.debug(f"Space detected. Buffer before check: '{self.buffer}'") 
-            #Check if the buffer contains a LLM Prompt Command
 
+            #Check if the buffer contains a stored Command
+            if self.buffer in self.snippet_storage.snippets:
+                logger.info(f"Command '{self.buffer}' found! Emitting signal.")
+                self.command_typed.emit(self.buffer)
+                self.buffer = ""
+                return
+                
             llm_prefix = "::Prompt("
             if self.buffer.startswith(llm_prefix) and self.buffer.endswith(")"):
                 if len(self.buffer)> len(llm_prefix) +1:
                     user_query = self.buffer[len(llm_prefix):-1]
-                    logger.info(f"LLM prompt command detected. User query: '{user_query}'")
-                    self.llm_command_detected.emit(user_query)
+                    original_command = self.buffer
+                    #now to show the user a visual feedback that a prompt is being generated.
+                    #Do this by sending original command to application so it can engage with teh backspacing
+                    self.llm_command_detected.emit(original_command, user_query)
+
                     self.buffer=""
                     logger.debug("Buffer cleared after LLM command.")
                     return
                 else:
                     logger.debug(f"Empty prompt in format '{self.buffer}', no query is extracted and no API called.")
-            #Check if buffer contains a registered command
-            if "::" in self.buffer:
-                parts = self.buffer.split("::")
-                if len(parts) > 1:
-                    cmd = "::" + parts[-1]
-                    logger.debug(f"Checking for command: '{cmd}'") 
-                    if cmd in self.snippet_storage.snippets:
-                        logger.info(f"Command '{cmd}' found! Emitting signal.")
-                        self.command_typed.emit(cmd)
-                        self.buffer = ""
-                        logger.debug("Buffer cleared after command.") 
-                        return
-                    else:
-                        logger.debug(f"Command '{cmd}' not found in storage.") 
+
+
             
             self.buffer += " " # Add space if no command was triggered
             logger.debug(f"Buffer after space added: '{self.buffer}'") 
+
+
+            
+                        
         elif len(char) == 1 and not self.ctrl_pressed:
             #add character to buffer
             self.buffer+=char

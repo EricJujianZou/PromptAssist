@@ -1,82 +1,253 @@
-QMainWindow {
-    background-color: #1e1e1e;
-}
+/*
+ * Modern Dark Theme for Expandr Dashboard
+ */
 
 QWidget {
-    font-family: 'Segoe UI', Arial, sans-serif;
-}
-
-QListWidget, QTextEdit {
-    background-color: #252526;
-    color: #d4d4d4;
-    border: 1px solid #3f3f3f;
-    border-radius: 4px;
-    padding: 2px;
+    background-color: #2B2B2B;
+    color: #F2F2F2;
+    font-family: "Segoe UI", "Roboto", "Helvetica Neue", Arial, sans-serif;
     font-size: 10pt;
 }
 
+/* --- Main Window --- */
+SnippetUI, QWidget {
+    border: none;
+}
+
+/* --- Navigation List --- */
+QListWidget {
+    background-color: #333333;
+    border: 1px solid #454545;
+    padding: 5px;
+    border-radius: 4px;
+}
+
 QListWidget::item {
-    padding: 4px;
-    border-radius: 2px;
+    padding: 8px 12px;
+    border-radius: 3px;
+}
+
+QListWidget::item:hover {
+    background-color: #4A4A4A;
 }
 
 QListWidget::item:selected {
-    background-color: #094771;
-    color: #ffffff;
+    background-color: #007ACC; /* Bright blue accent for selection */
+    color: #FFFFFF;
 }
 
-QListWidget::item:hover:!selected {
-    background-color: #2a2d2e;
+/* --- Stacked Widget (Content Pane) --- */
+QStackedWidget > QWidget {
+    background-color: #2B2B2B;
 }
 
+/* --- Text Editor --- */
 QTextEdit {
-    padding: 4px;
-    line-height: 1.4;
+    background-color: #3C3C3C;
+    border: 1px solid #454545;
+    border-radius: 4px;
+    color: #F2F2F2;
+    padding: 8px;
+    font-size: 11pt;
 }
 
-/* Default button style */
+QTextEdit:focus {
+    border: 1px solid #007ACC; /* Highlight focus with accent color */
+}
+
+/* --- Buttons --- */
 QPushButton {
-    color: #ffffff;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 3px;
-    font-weight: bold;
-    background-color: #505050;  /* Default gray */
+    background-color: #555555;
+    color: #F2F2F2;
+    border: 1px solid #666666;
+    padding: 8px 16px;
+    border-radius: 4px;
+    min-width: 120px; /* Give buttons a consistent width */
 }
 
-/* Function-specific button colors with states */
+QPushButton:hover {
+    background-color: #6A6A6A;
+    border-color: #777777;
+}
+
+QPushButton:pressed {
+    background-color: #4A4A4A;
+}
+
+/* Style specific buttons for emphasis */
 QPushButton#saveButton {
-    background-color: #0e639c; /* Blue - standard action */
-}
-QPushButton#saveButton:hover {
-    background-color: #1177bb; /* Lighter blue */
-}
-QPushButton#saveButton:pressed {
-    background-color: #0d5989; /* Darker blue */
+    background-color: #007ACC;
+    color: #FFFFFF;
+    border-color: #005C99;
 }
 
-QPushButton#newButton {
-    background-color: #10715e; /* Teal - creation action */
-}
-QPushButton#newButton:hover {
-    background-color: #13866f; /* Lighter teal */
-}
-QPushButton#newButton:pressed {
-    background-color: #0e5c4e; /* Darker teal */
+QPushButton#saveButton:hover {
+    background-color: #008AE6;
 }
 
 QPushButton#deleteButton {
-    background-color: #a1260d; /* Red - destructive action */
-}
-QPushButton#deleteButton:hover {
-    background-color: #b92d0f; /* Lighter red */
-}
-QPushButton#deleteButton:pressed {
-    background-color: #87200b; /* Darker red */
+    background-color: #C75450; /* A safe, muted red */
+    color: #FFFFFF;
+    border-color: #A43D39;
 }
 
-QStatusBar {
-    background-color: #13866f;
-    color: #ffffff;
+QPushButton#deleteButton:hover {
+    background-color: #D96460;
+}
+
+
+/* --- Scroll Bars --- */
+QScrollBar:vertical {
+    border: none;
+    background: #2B2B2B; /* Match window background for a cleaner look */
+    width: 12px;
+    margin: 0; /* Remove margin for a more modern feel */
+    border-radius: 0px;
+}
+
+QScrollBar::handle:vertical {
+    background: #6A6A6A; /* A lighter, more visible grey */
+    min-height: 25px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #888888; /* Brighter on hover */
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+    height: 0px;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+    background: none;
+}
+
+QScrollBar:horizontal {
+    border: none;
+    background: #2B2B2B; /* Match window background */
+    height: 12px;
+    margin: 0;
+    border-radius: 0px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #6A6A6A; /* A lighter, more visible grey */
+    min-width: 25px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #888888; /* Brighter on hover */
+}
+
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+}
+
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
+}
+
+/* --- Remove Focus Outline --- */
+/* This removes the dotted border that appears when an item is selected */
+QListWidget, QPushButton, QTableWidget, QComboBox, QCheckBox, QPlainTextEdit, QTextEdit {
+    outline: none;
+}
+
+QListWidget::item:focus, QTableWidget::item:focus {
+    outline: none;
+    border: none; /* Also remove border if any appears on focus */
+}
+
+
+/* --- Dialogs (QInputDialog, QMessageBox) --- */
+QDialog, QInputDialog, QMessageBox {
+    background-color: #3C3C3C;
+    border: 1px solid #555555;
+    border-radius: 4px;
+}
+
+QDialog QLabel, QInputDialog QLabel, QMessageBox QLabel {
+    color: #F2F2F2;
+    min-width: 250px; /* Ensure dialogs have a reasonable default size */
+}
+
+QDialog QLineEdit, QInputDialog QLineEdit {
+     background-color: #2B2B2B;
+     border: 1px solid #454545;
+     border-radius: 4px;
+     padding: 5px;
+     color: #F2F2F2;
+}
+
+/* Style the buttons inside dialogs to match the main theme */
+QDialog QPushButton, QInputDialog QPushButton, QMessageBox QPushButton {
+    background-color: #555555;
+    color: #F2F2F2;
+    border: 1px solid #666666;
+    padding: 8px 16px;
+    border-radius: 4px;
+    min-width: 80px; /* Dialog buttons can be a bit smaller */
+}
+
+QDialog QPushButton:hover, QInputDialog QPushButton:hover, QMessageBox QPushButton:hover {
+    background-color: #6A6A6A;
+    border-color: #777777;
+}
+
+QDialog QPushButton:pressed, QInputDialog QPushButton:pressed, QMessageBox QPushButton:pressed {
+    background-color: #4A4A4A;
+}
+
+/* Specifically style the default button (e.g., 'OK') in dialogs */
+QDialog QPushButton:default, QInputDialog QPushButton:default, QMessageBox QPushButton:default {
+    background-color: #007ACC;
+    color: #FFFFFF;
+    border-color: #005C99;
+}
+
+QDialog QPushButton:default:hover, QInputDialog QPushButton:default:hover, QMessageBox QPushButton:default:hover {
+    background-color: #008AE6;
+}
+
+/* --- Custom Title Bar --- */
+#CustomTitleBar {
+    background-color: #333333;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+}
+
+#titleLabel {
+    color: #CCCCCC;
     font-weight: bold;
+    padding-left: 5px;
+}
+
+/* Window Control Buttons */
+#CustomTitleBar QPushButton {
+    background-color: transparent;
+    color: #CCCCCC;
+    border: none;
+    font-size: 12pt;
+    min-width: 45px; /* Reset min-width for these specific buttons */
+}
+
+#CustomTitleBar QPushButton:hover {
+    background-color: #4A4A4A;
+}
+
+#CustomTitleBar QPushButton#closeButton:hover {
+    background-color: #E81123; /* Standard red for close button hover */
+    color: #FFFFFF;
+}
+
+/* --- Frameless Window Container --- */
+#shadowContainer {
+    background-color: #2B2B2B;
+    border-radius: 4px;
 }
