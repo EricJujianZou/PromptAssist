@@ -21,6 +21,7 @@ class LLMHandler(QObject):
     @Slot(str, str)
     def get_prompt_from_backend (self, user_query: str, original_command: str):
         """Make a post request to the backend with user_query, return an augmented prompt"""
+
         try:
             base_url = os.getenv("BACKEND_API_URL")
             if not base_url:
