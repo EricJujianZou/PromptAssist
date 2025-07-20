@@ -44,7 +44,7 @@ class SnippetHandler:
 
             clipboard_copy(snippet_text)
             clipboard_modified = True
-            time.sleep(0.1)
+            time.sleep(0.5)
 
             keyboard.send('ctrl + v')
             logger.info(f"Pasted snippet for command {cmd}")

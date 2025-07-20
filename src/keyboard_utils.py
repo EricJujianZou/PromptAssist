@@ -40,7 +40,7 @@ def simulate_keystrokes(text_to_type: str="", backspaces:int=0, char_delay: floa
         except Exception as e:
             logger.error(f"Attempted to simulate typing, error occurred: {e}", exc_info=True)
 
-def clipboard_copy(text_to_copy: str):
+def clipboard_copy(text_to_copy: str, clear_after: bool = False, clear_delay: float = 1.0):
         """
         feature: copy the API returned text to the clipboard, and notify the user that they can paste at any time.
         This feature update gives more freedom for the user to decide when to use the prompt based on their workflow
@@ -50,8 +50,14 @@ def clipboard_copy(text_to_copy: str):
         try: 
             pyperclip.copy(text_to_copy)
             logger.debug(f"Copied to clipboard: {text_to_copy[:100]}")
-
             
+            if clear_after:
+                # This is a tricky part. We can't know when the paste happens.
+                # We wait for a short delay and then clear.
+                time.sleep(clear_delay)
+                pyperclip.copy('') # Clear clipboard
+                logger.info("Clipboard cleared after delay.")
+
         except pyperclip.PyperclipException as e_pyperclip:
             logger.error(f"Pyperclip error: Failed to copy text {e_pyperclip}", exc_info=True)
         except Exception as e:
