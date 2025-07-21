@@ -114,3 +114,5 @@ logs/
 
 # AI assistance files
 MileStoneFileForLLM.txt
+
+*.yaml
