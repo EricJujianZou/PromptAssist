@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Response, HTTPException
-from .settings import Settings
-from .vertex_ai_client import VertexAIClient
-from .pydantic_models import PromptRequest, PromptResponse
+from settings import Settings
+from vertex_ai_client import VertexAIClient
+from pydantic_models import PromptRequest, PromptResponse
 from pydantic import ValidationError
 settings = Settings()  # type: ignore - Pydantic loads from .env at runtime, Pylance can't see this.
 import logging 
