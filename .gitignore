@@ -114,7 +114,5 @@ logs/
 # AI assistance files
 MileStoneFileForLLM.txt
 
-*.yaml
-
 #cloud injection env files
 *.yaml
