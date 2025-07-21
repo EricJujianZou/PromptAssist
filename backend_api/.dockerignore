@@ -1,0 +1,12 @@
+# Ignore Python's cache files
+
+__pycache__/
+*.pyc
+
+# CRITICAL: Ignore environment files containing secrets
+.env
+*.env
+
+# Ignore Dockerfile itself
+Dockerfile
+

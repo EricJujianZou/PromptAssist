@@ -1,4 +1,4 @@
-from .settings import Settings
+from settings import Settings
 from google import genai
 from google.genai.types import GenerateContentConfig
 import logging
