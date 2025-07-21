@@ -94,8 +94,7 @@ Thumbs.db
 desktop.ini
 
 # Secrets and sensitive configuration files
-# NEVER commit secrets. Use environment variables or a secure vault.
-# This .gitignore is a safety net.
+
 *.env
 .env.*
 secrets.ini
@@ -114,3 +113,6 @@ logs/
 
 # AI assistance files
 MileStoneFileForLLM.txt
+
+#cloud injection env files
+*.yaml
