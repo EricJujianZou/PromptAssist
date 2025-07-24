@@ -87,23 +87,23 @@ class KeystrokeListener(QObject):
             if self.buffer in self.snippet_storage.snippets:
                 logger.info(f"Command '{self.buffer}' found! Emitting signal.")
                 self.command_typed.emit(self.buffer)
-                self.buffer = ""
                 return
                 
             llm_prefix = "::Prompt("
-            if self.buffer.startswith(llm_prefix) and self.buffer.endswith(")"):
-                if len(self.buffer)> len(llm_prefix) +1:
-                    user_query = self.buffer[len(llm_prefix):-1]
-                    original_command = self.buffer
-                    #now to show the user a visual feedback that a prompt is being generated.
-                    #Do this by sending original command to application so it can engage with teh backspacing
-                    self.llm_command_detected.emit(original_command, user_query)
-
-                    self.buffer=""
-                    logger.debug("Buffer cleared after LLM command.")
-                    return
-                else:
+            if llm_prefix in self.buffer and self.buffer.endswith(")"):
+                original_command_start = self.buffer.find(llm_prefix)
+                
+                user_query_start = original_command_start + len(llm_prefix)
+                original_command = self.buffer[original_command_start : ]
+                user_query = self.buffer[user_query_start : -1]
+                if not user_query:
                     logger.debug(f"Empty prompt in format '{self.buffer}', no query is extracted and no API called.")
+                    self.buffer += " "
+                    return
+                
+                else:
+                    self.llm_command_detected.emit(original_command, user_query)
+                    return
 
 
             

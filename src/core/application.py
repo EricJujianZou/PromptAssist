@@ -119,7 +119,7 @@ class Application(QObject):
     def handle_llm_augmented_prompt(self, augmented_prompt: str, original_query: str):
 
         try:
-            backspaces_for_call = len(original_query)
+            backspaces_for_call = len(self.generating_text)
 
             if augmented_prompt:
                 # Add to history
@@ -139,6 +139,7 @@ class Application(QObject):
         finally:
             self.is_request_in_flight = False
             logger.info("LLM request flight lock released.")
+            self.keystroke_listener.clear_buffer()
 
     @Slot(str)
     def handle_llm_failure(self, error_message: str):
@@ -153,6 +154,7 @@ class Application(QObject):
         finally:
             self.is_request_in_flight = False
             logger.info("LLM request flight lock released after failure.")
+            self.keystroke_listener.clear_buffer()
 
     @Slot(QSystemTrayIcon.ActivationReason)
     def on_tray_icon_activated(self, reason):
