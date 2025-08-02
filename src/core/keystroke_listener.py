@@ -84,6 +84,10 @@ class KeystrokeListener(QObject):
             logger.debug(f"Space detected. Buffer before check: '{self.buffer}'") 
 
             #Check if the buffer contains a stored Command
+            """
+            TODO: Fix the self.buffer detection defect -> it should only detect ::command snippets instead of the whole buffer. ::Command snippets can be
+            embedded inside a buffer.
+            """
             if self.buffer in self.snippet_storage.snippets:
                 logger.info(f"Command '{self.buffer}' found! Emitting signal.")
                 self.command_typed.emit(self.buffer)
