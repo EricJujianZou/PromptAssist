@@ -14,7 +14,7 @@ LOG_FILE_PATH = os.path.join(LOG_DIR, 'app.log')
 
 def setup_logging():
     """Configures logging for the application."""
-    log_level = logging.DEBUG # Set to INFO for production, DEBUG for development
+    log_level = logging.INFO # Set to INFO for production, DEBUG for development
     log_format = '%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s:%(lineno)d - %(message)s'
     date_format = '%Y-%m-%d %H:%M:%S'
 
