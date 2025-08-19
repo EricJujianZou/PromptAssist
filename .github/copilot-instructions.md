@@ -131,3 +131,4 @@ This section lists Python concepts the user is already familiar with, generally 
   - Understanding how absolute imports and relative imports work, their difference, and functions("." is relative for same dir, ".." is relative for parent dir, and without is absolute)
 - **Try-Catch Exceptions (Basic Usage):**
   - Understanding the purpose of Try-Catch bllocks and how to use them
+  - Exception handling

@@ -43,6 +43,8 @@ First backspacing pattern: backspacing stops at “::Prompt(g” so the command,
  
 Second backspacing pattern: backspacing stops leaving just one “:”. 
 
+update: FIXED
+
 E2E-02 
 
 Successful prompt generation in VS Code 
