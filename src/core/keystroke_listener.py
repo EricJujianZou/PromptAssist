@@ -1,9 +1,9 @@
 import keyboard
 import time
 from PySide6.QtCore import QObject, Signal
-import logging # Add logging import
+import logging 
 from ..storage.snippet_storage import SnippetStorage
-from ..keyboard_utils import simulate_keystrokes, clipboard_copy
+import pyperclip
 
 logger = logging.getLogger(__name__) # Initialize logger
 
@@ -27,6 +27,8 @@ class KeystrokeListener(QObject):
             try:
                 keyboard.hook(self._track_keystrokes)
                 logger.info("Keyboard listener initialized.") 
+                keyboard.add_hotkey('ctrl+v', self._on_paste)
+                logger.info("Hotkey for pasting a prompt added")
             except Exception as e:
                 logger.error(f"Error initializing keyboard listener: {e}") 
             
@@ -68,7 +70,7 @@ class KeystrokeListener(QObject):
         llm_prefix = "::Prompt("
 
         #Handle ctrl combo presses:
-        if self.ctrl_pressed and event.name in ('a', 'c', 'v', 'x', 'z'):
+        if self.ctrl_pressed and event.name in ('a', 'c', 'x', 'z'):
             logger.debug("Ctrl+Key detected, clearing buffer.") 
             self.buffer=""
             return
@@ -85,12 +87,8 @@ class KeystrokeListener(QObject):
             logger.debug(f"Space detected. Buffer before check: '{self.buffer}'") 
 
             #Check if the buffer contains a stored Command
-            """
-            TODO: Fix the self.buffer detection defect -> it should only detect ::command snippets instead of the whole buffer. ::Command snippets can be
-            embedded inside a buffer.
-            """
-            #strategy:
-            #extract the word from :: to space 
+           
+
             snippet_prefix = "::"
             if snippet_prefix in self.buffer:
                 possible_snippet = self.buffer[self.buffer.index("::"):]
@@ -139,6 +137,22 @@ class KeystrokeListener(QObject):
             # Log other keys if needed (like shift, alt, etc.)
             # logger.debug(f"Non-character key ignored: {char}") 
             pass # Ignore other keys like shift, alt, etc. for now
+
+    def _on_paste(self):
+        logger.debug("attempting to paste last clipboard object")
+        try:
+
+            pasted_object = pyperclip.paste()
+            #check if the pasted object is of string type
+            if (isinstance(pasted_object, str)):
+                self.buffer += pasted_object
+                logger.info(f"Adding text: \"{pasted_object}\" to buffer")
+            else:
+                logger.info("Pasted text is not a string, ignoring")
+        except Exception as e:
+            logger.error(f"Error with clipboard pasting. Error: {e}", exc_info=True)
+        
+
     def clear_buffer(self):
         logger.debug ("KeystrokeListener: Buffer cleared") 
         self.buffer = ""
