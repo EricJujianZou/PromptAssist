@@ -175,3 +175,7 @@ note how the buffer suddenly got trimmed, that is a previous feature that we dev
 
  
 
+Another hcange I made was eliminating the buffer cap/trim of the ::Prompt alltogether. so now it only trims if it detects no prompt input.
+NOw i can see an edge case where if someone types the "::" as their 199th and 200th characters. This way, if thye keep on typing the full ::Snippet or ::Prompt, the buffer will not register and will cause a confusing bug.
+So let me know about your opinion on this, are there any possible risks and vulnerabilities for completing removing the trim for a ::Prompt? 
+and how do you suppose we fix the edge case that I just listed?

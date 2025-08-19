@@ -65,6 +65,7 @@ class KeystrokeListener(QObject):
 
         #Check last input time:
         self.last_input_time = time.time()
+        llm_prefix = "::Prompt("
 
         #Handle ctrl combo presses:
         if self.ctrl_pressed and event.name in ('a', 'c', 'v', 'x', 'z'):
@@ -88,12 +89,18 @@ class KeystrokeListener(QObject):
             TODO: Fix the self.buffer detection defect -> it should only detect ::command snippets instead of the whole buffer. ::Command snippets can be
             embedded inside a buffer.
             """
-            if self.buffer in self.snippet_storage.snippets:
-                logger.info(f"Command '{self.buffer}' found! Emitting signal.")
-                self.command_typed.emit(self.buffer)
-                return
+            #strategy:
+            #extract the word from :: to space 
+            snippet_prefix = "::"
+            if snippet_prefix in self.buffer:
+                possible_snippet = self.buffer[self.buffer.index("::"):]
+                if possible_snippet in self.snippet_storage.snippets:
+                    logger.info(f"Command '{possible_snippet}' found! Emitting signal.")
+                    self.command_typed.emit(possible_snippet)
+                    return
+
+            
                 
-            llm_prefix = "::Prompt("
             if llm_prefix in self.buffer and self.buffer.endswith(")"):
                 original_command_start = self.buffer.find(llm_prefix)
                 
@@ -122,16 +129,10 @@ class KeystrokeListener(QObject):
             self.buffer+=char
             logger.debug(f"Buffer after adding char '{char}': '{self.buffer}'") 
 
-            #limit buffer size if they keep on typing for performance and privacy
-            if len(self.buffer) > 200: #increased buffer cap to 200 chars because expecting longer commands from users for the LLM feature
-                if self.buffer.startswith("::Prompt("):
-                    #higher buffer limit of 1000 chars
-                    if len(self.buffer)> 1000:
-                        #trim:
-                        self.buffer = self.buffer[-200:]
-                        logger.debug(f"Trimmed buffer of ::prompt query because it's over 1000 characters")
-                else:
-
+            if len(self.buffer) > 200: 
+                if llm_prefix not in self.buffer:
+                    #if we have a long buffer string without a prefix indicating someone's sending a crazy prompt, then trim it for performance and 
+                    #for privacy
                     self.buffer = self.buffer[-50:]
                     logger.debug(f"Buffer trimmed: '{self.buffer}'") 
         else:
