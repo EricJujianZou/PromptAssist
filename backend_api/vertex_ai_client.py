@@ -1,4 +1,4 @@
-from settings import Settings
+from .settings import Settings
 from google import genai
 from google.genai.types import GenerateContentConfig
 import logging
@@ -30,7 +30,7 @@ class VertexAIClient:
         logger.info(f"VertexAIClient initialized for model '{settings.LLM_MODEL_NAME}'.")
 
     def generate_prompt(self, user_query:str)->str:
-
+        logger.info(f"system instruction injected: {self.system_instructions}")
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
