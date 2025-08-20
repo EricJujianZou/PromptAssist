@@ -15,7 +15,7 @@ class SettingsStorage:
                 app_data_dir = os.path.expanduser('~')
                 logger.warning("APPDATA environment variable not found. Using home directory.")
             
-            self.storage_dir = os.path.join(app_data_dir, 'Expandr')
+            self.storage_dir = os.path.join(app_data_dir, 'PromptAssist')
             if not os.path.exists(self.storage_dir):
                 os.makedirs(self.storage_dir)
                 logger.info(f"Created settings directory: {self.storage_dir}")

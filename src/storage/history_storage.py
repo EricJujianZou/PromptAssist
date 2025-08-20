@@ -13,7 +13,7 @@ class HistoryStorage:
             if not app_data_dir:
                 app_data_dir = os.path.expanduser('~')
             
-            self.storage_dir = os.path.join(app_data_dir, 'Expandr')
+            self.storage_dir = os.path.join(app_data_dir, 'PromptAssist')
             if not os.path.exists(self.storage_dir):
                 os.makedirs(self.storage_dir)
         except Exception as e:

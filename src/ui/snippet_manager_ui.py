@@ -22,7 +22,7 @@ class SnippetUI(QWidget):
         self._init_ui()
 
     def _init_ui(self):
-        self.setWindowTitle("Expandr Dashboard")
+        self.setWindowTitle("PromptAssist Dashboard")
         self.resize(800, 600)
 
         main_layout = QHBoxLayout(self)

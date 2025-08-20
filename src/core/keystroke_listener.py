@@ -128,7 +128,7 @@ class KeystrokeListener(QObject):
             logger.debug(f"Buffer after adding char '{char}': '{self.buffer}'") 
 
             if len(self.buffer) > 200: 
-                if llm_prefix not in self.buffer:
+                if "::" not in self.buffer:
                     #if we have a long buffer string without a prefix indicating someone's sending a crazy prompt, then trim it for performance and 
                     #for privacy
                     self.buffer = self.buffer[-50:]
