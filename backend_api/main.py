@@ -6,6 +6,11 @@ from pydantic import ValidationError
 settings = Settings()  # type: ignore - Pydantic loads from .env at runtime, Pylance can't see this.
 import logging 
 from contextlib import asynccontextmanager
+#rate limiting imports
+import redis.asyncio as redis
+from fastapi_limiter import FastAPILimiter
+from fastapi import Depends
+from fastapi_limiter.depends import RateLimiter
 
 
 
@@ -37,14 +42,20 @@ async def lifespan(app: FastAPI):
         #any failure we log error
         logger.critical(f"CRITICAL: failed to initialize Vertex AI Client during startup: {e}", exc_info=True)
         app.state.vertex_ai_client = None
+    try:
+        redis_conn = await redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+        await FastAPILimiter.init(redis_conn)
+    except Exception as e:
+        logger.error(f"CRITICAL: redis connection uninitialized")
 
     yield
     logger.info("Application shutdown sequence initiated")
 
 app = FastAPI(lifespan=lifespan)
 
+
 @app.post("/api/v1/generate-prompt")
-async def generate_prompt(request: PromptRequest, http_request:Request)->PromptResponse:
+async def generate_prompt(request: PromptRequest, http_request:Request, ratelimits: None = Depends(RateLimiter(times=20, minutes=1)))->PromptResponse:
     vertex_ai_client = http_request.app.state.vertex_ai_client
 
     if not vertex_ai_client:
@@ -67,6 +78,7 @@ async def generate_prompt(request: PromptRequest, http_request:Request)->PromptR
         raise HTTPException(status_code = 500, detail = "Internal server error")
     
 
+    
 @app.get("/api/v1/health")
 async def show_health():
     return Response(status_code=200)

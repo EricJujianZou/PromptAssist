@@ -4,3 +4,5 @@ uvicorn[standard]
 pydantic-settings
 python-dotenv
 google-genai
+fastapi-limiter
+redis
