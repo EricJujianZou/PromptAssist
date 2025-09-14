@@ -1,6 +1,5 @@
-import keyboard
 from PySide6.QtCore import QObject, Slot
-from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QMenu
+from PySide6.QtWidgets import QApplication, QSystemTrayIcon, QStyle, QMenu
 from PySide6.QtGui import QIcon
 from ..storage.snippet_storage import SnippetStorage
 from ..storage.settings_storage import SettingsStorage
@@ -12,10 +11,13 @@ from .focus_tracker import FocusTracker
 from .snippet_handler import SnippetHandler 
 from .llm_prompt_handler import LLMHandler
 from ..keyboard_utils import clipboard_copy, simulate_keystrokes
+from .resource_handler import get_path_for_resource
 import signal
-import os
 import logging # Import logging
 import winsound
+import sys
+import os
+
 
 logger = logging.getLogger(__name__) # Get a logger for this module
 
@@ -24,6 +26,7 @@ logger = logging.getLogger(__name__) # Get a logger for this module
 class Application(QObject):
      
     def __init__(self):
+        
         super().__init__()#initialize QObject from super class constructor
         logger.info("Initializing Application...")
         self.storage = SnippetStorage()
@@ -33,6 +36,9 @@ class Application(QObject):
         # self.cached_control = None #implement cache control, which stores reference to the active UI control to reduce UIA overhead - COMMENTED OUT
         #App compatibility, works with most but for some can not detect the input content
         self.is_request_in_flight = False
+
+        #resource handler for icon
+        
 
         # Load settings into application properties, ensuring correct types
         self.blacklisted_apps = self.settings.get("blacklisted_apps", [])
@@ -59,11 +65,16 @@ class Application(QObject):
         self.llm_handler.prompt_received.connect(self.handle_llm_augmented_prompt) 
         self.llm_handler.prompt_failed.connect(self.handle_llm_failure)
 
+        #snippet replacement and clear connections
+        self.snippet_handler.snippet_pasted.connect(self.replace_and_clear_buffer)
         #signal handlers for termination
         signal.signal(signal.SIGINT, self._handle_signal)
         signal.signal(signal.SIGTERM, self._handle_signal)
         logger.info("Signal handlers registered.")
 
+    @Slot()
+    def replace_and_clear_buffer(self):
+        self.keystroke_listener.clear_buffer()
     @Slot()
     def show_snippet_manager(self):
         """Create and show the snippet manager UI."""
@@ -79,7 +90,7 @@ class Application(QObject):
             # 3. Load and apply the stylesheet to the main window
             try:
                 # Correct path from src/core/ to src/
-                style_path = os.path.join(os.path.dirname(__file__), '..', 'style.qss')
+                style_path = get_path_for_resource('style.qss')
                 with open(style_path, "r") as f:
                     stylesheet = f.read()
                 self.main_window.setStyleSheet(stylesheet)
@@ -171,9 +182,31 @@ class Application(QObject):
         
         # Set icon
         try:
-            icon_path = os.path.join(os.path.dirname(__file__), '..', 'icons', 'logo.png')
-            self.tray_icon.setIcon(QIcon(icon_path))
-            logger.debug(f"Tray icon set from {icon_path}")
+
+            try:
+                # Check if running in a bundle and log the bundle directory
+                bundle_dir = sys._MEIPASS
+                logging.info(f"RUNNING IN BUNDLE. MEIPASS is: {bundle_dir}")
+            except AttributeError:
+                # Log the directory if running as a normal script
+                bundle_dir = os.path.abspath(".")
+                logging.info(f"RUNNING AS SCRIPT. Base path is: {bundle_dir}")
+
+            icon_path = get_path_for_resource('logo.ico')
+            logging.info(f"Attempting to load icon from generated path: {icon_path}")
+
+
+            # Log whether the file actually exists at that path
+            if os.path.exists(icon_path):
+                logging.info("SUCCESS: Icon file was found at the specified path.")
+                self.tray_icon.setIcon(QIcon(icon_path))
+                
+            else:
+                logging.error("FAILURE: Icon file was NOT FOUND at the specified path.")
+                std_icon = QApplication.style().standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
+                self.tray_icon.setIcon(std_icon)
+
+            
         except Exception as e:
             logger.error(f"Failed to load tray icon: {e}", exc_info=True)
 

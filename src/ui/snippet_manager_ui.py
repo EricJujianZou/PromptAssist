@@ -12,6 +12,7 @@ from ..storage.snippet_storage import SnippetStorage
 from ..storage.settings_storage import SettingsStorage
 from ..storage.history_storage import HistoryStorage
 from .frameless_window import FramelessWindow
+from ..core.resource_handler import get_path_for_resource
 
 class SnippetUI(QWidget):
     def __init__(self, storage: SnippetStorage, settings: SettingsStorage, history: HistoryStorage, parent=None):
@@ -30,7 +31,7 @@ class SnippetUI(QWidget):
         # --- Left Navigation Pane ---
         self.nav_list = QListWidget()
         self.nav_list.addItem("Snippets")
-        self.nav_list.addItem("Settings")
+        #self.nav_list.addItem("Settings")
         self.nav_list.addItem("History")
         self.nav_list.setMaximumWidth(150)
         main_layout.addWidget(self.nav_list)
@@ -41,12 +42,12 @@ class SnippetUI(QWidget):
 
         # Create the different pages for the content area
         self.snippet_page = self._create_snippet_page()
-        self.settings_page = self._create_settings_page()
+        #self.settings_page = self._create_settings_page()
         self.history_page = self._create_history_page()
 
         # Add pages to the stacked widget
         self.pages.addWidget(self.snippet_page)
-        self.pages.addWidget(self.settings_page)
+        #self.pages.addWidget(self.settings_page)
         self.pages.addWidget(self.history_page)
 
         # Connect navigation list to the stacked widget
@@ -107,13 +108,6 @@ class SnippetUI(QWidget):
         self.theme_combo.currentTextChanged.connect(self._on_setting_changed)
         layout.addRow("Theme:", self.theme_combo)
 
-        # --- Clear Clipboard ---
-        self.clear_clipboard_checkbox = QCheckBox("Clear clipboard after pasting")
-        # Ensure the value from settings is treated as a boolean
-        self.clear_clipboard_checkbox.setChecked(bool(self.settings.get("clear_clipboard_on_paste", False)))
-        self.clear_clipboard_checkbox.stateChanged.connect(self._on_setting_changed)
-        layout.addRow(self.clear_clipboard_checkbox)
-
         # --- Blacklisted Apps ---
         self.blacklist_edit = QPlainTextEdit()
         blacklist = self.settings.get("blacklisted_apps", [])
@@ -133,8 +127,6 @@ class SnippetUI(QWidget):
         if isinstance(sender, QComboBox) and sender == self.theme_combo:
             self.settings.set("theme", sender.currentText())
             QMessageBox.information(self, "Theme Changed", "Theme will be applied on next restart.")
-        elif isinstance(sender, QCheckBox) and sender == self.clear_clipboard_checkbox:
-            self.settings.set("clear_clipboard_on_paste", sender.isChecked())
         elif isinstance(sender, QPlainTextEdit) and sender == self.blacklist_edit:
             apps = sender.toPlainText().strip().split('\n')
             self.settings.set("blacklisted_apps", [app.strip() for app in apps if app.strip()])
@@ -287,7 +279,7 @@ def load_stylesheet(file_path):
 if __name__ == "__main__":
     app = QApplication([])
     
-    style_path = os.path.join(os.path.dirname(__file__), '..', 'style.qss')
+    style_path = get_path_for_resource("style.qss")
     stylesheet = load_stylesheet(style_path)
     app.setStyleSheet(stylesheet)
 

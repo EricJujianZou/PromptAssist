@@ -4,13 +4,24 @@ from .core.application import Application
 import logging
 import logging.handlers # For rotating file handler
 import os
+from PySide6.QtCore import QTimer
+
+
+_persistent_app_instance = None
 
 # Determine the application's root directory or a suitable logs directory
 # In a production app, this might be in user's AppData or a system log directory.
-LOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'logs')
+app_data_dir = os.getenv('APPDATA')
+if not app_data_dir:
+    app_data_dir = os.path.expanduser('~')
+prompt_assist_dir = os.path.join(app_data_dir, "PromptAssist")
+
+LOG_DIR = os.path.join(prompt_assist_dir, 'logs')
 if not os.path.exists(LOG_DIR):
     os.makedirs(LOG_DIR)
 LOG_FILE_PATH = os.path.join(LOG_DIR, 'app.log')
+
+
 
 def setup_logging():
     """Configures logging for the application."""
@@ -44,7 +55,12 @@ def setup_logging():
     # logging.getLogger("PySide6").setLevel(logging.WARNING)
 
 
-if __name__ == "__main__":
+def start_main_application():
+    global _persistent_app_instance
+    _persistent_app_instance = Application()
+
+
+def main():
     setup_logging() # Call the setup function
 
     logger = logging.getLogger(__name__)
@@ -55,13 +71,13 @@ if __name__ == "__main__":
     app.setQuitOnLastWindowClosed(False)
     
     try:
-        snippet_app = Application() 
-        exit_code = app.exec()
-        logger.info(f"Application exited with code {exit_code}.")
-        sys.exit(exit_code)
+        QTimer.singleShot(0, start_main_application)
+        return app.exec()
+        
     except Exception as e:
         logger.critical(f"Unhandled exception at top level: {e}", exc_info=True)
         sys.exit(1)
+    
 
 
 

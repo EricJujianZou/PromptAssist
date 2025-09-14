@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     MAX_OUTPUT_TOKENS: int
     TEMPERATURE: float
     API_RETRY_COUNT: int
+    BACKEND_API_KEY:str
+    REDIS_URL:str
     #model config for reliable loading:
 
     model_config = SettingsConfigDict(

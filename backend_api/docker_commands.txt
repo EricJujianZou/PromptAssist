@@ -1,0 +1,7 @@
+#to build
+docker build -t us-central1-docker.pkg.dev/expandr-461015/prompt-assist-images/prompt-assist-backend:v1.2.0 ./backend_api
+
+#to push
+docker push us-central1-docker.pkg.dev/expandr-461015/prompt-assist-images/prompt-assist-backend:v1.2.0
+
+make sure to change version name.

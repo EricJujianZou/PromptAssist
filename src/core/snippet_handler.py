@@ -5,13 +5,14 @@ from ..keyboard_utils import simulate_keystrokes, clipboard_copy
 import logging
 import time
 import keyboard
+from PySide6.QtCore import QObject, Signal
 
 logger = logging.getLogger(__name__)
 
-class SnippetHandler:
-    snippet_pasted = Signal (str) #this is a signal we will send after 
+class SnippetHandler(QObject):
+    snippet_pasted = Signal () #this is a signal we will send after 
     def __init__(self, snippet_storage: SnippetStorage):
-
+        super().__init__()
         """Initialize the SnippetHandler with a SnippetStorage instance."""
 
         self.snippet_storage = snippet_storage
@@ -42,13 +43,15 @@ class SnippetHandler:
                 logger.warning(f"Error retrieving original clipboard content: {e_get_paste}")
             
 
-            clipboard_copy(snippet_text)
+            clipboard_copy(snippet_text, clear_delay = 0.5)
             clipboard_modified = True
-            time.sleep(0.5)
+            time.sleep(0.2)
 
             keyboard.send('ctrl + v')
             logger.info(f"Pasted snippet for command {cmd}")
-            time.sleep(0.2)
+            self.snippet_pasted.emit()
+
+            time.sleep(0.5)
             #proceed with deletion from clipboard
 
         except KeyError as e:
@@ -58,6 +61,7 @@ class SnippetHandler:
         finally:
             if clipboard_modified and original_clipboard_content is not None: #"is not" checks for memory address or identity inequality vs value inequality
                 try:
+                    
                     pyperclip.copy(original_clipboard_content)
                     logger.debug("restored user's original clipboard content")
                 except pyperclip.PyperclipException as e_restore:

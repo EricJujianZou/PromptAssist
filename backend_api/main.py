@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Response, HTTPException, Request
+from fastapi import FastAPI, Response, HTTPException, Request, Header, Depends
 from .settings import Settings
 from .vertex_ai_client import VertexAIClient
 from .pydantic_models import PromptRequest, PromptResponse
@@ -9,10 +9,17 @@ from contextlib import asynccontextmanager
 #rate limiting imports
 import redis.asyncio as redis
 from fastapi_limiter import FastAPILimiter
-from fastapi import Depends
 from fastapi_limiter.depends import RateLimiter
+import secrets
 
+CORRECT_API_KEY = settings.BACKEND_API_KEY
+REDIS_URL = settings.REDIS_URL
 
+async def verify_api_key(api_key_header: str | None = Header(None, alias = "X-API-KEY")):
+    if not api_key_header:
+        raise HTTPException(status_code = 401, detail = "API KEY MISSING")
+    if not secrets.compare_digest(api_key_header, CORRECT_API_KEY):
+        raise HTTPException(status_code = 401, detail = "API KEY INVALID")
 
 def setup_logging():
     """config logging for the backend app"""
@@ -24,7 +31,7 @@ def setup_logging():
         root_logger.handlers.clear()
 
     handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(name)s - [%levelname)s] - %(message)s')
+    formatter = logging.Formatter('%(asctime)s - %(name)s - [%(levelname)s] - %(message)s')
     handler.setFormatter(formatter)
 
     root_logger.addHandler(handler)
@@ -43,10 +50,11 @@ async def lifespan(app: FastAPI):
         logger.critical(f"CRITICAL: failed to initialize Vertex AI Client during startup: {e}", exc_info=True)
         app.state.vertex_ai_client = None
     try:
-        redis_conn = await redis.from_url("redis://localhost", encoding="utf-8", decode_responses=True)
+        redis_conn = await redis.from_url(REDIS_URL, encoding="utf-8", decode_responses=True)
         await FastAPILimiter.init(redis_conn)
     except Exception as e:
         logger.error(f"CRITICAL: redis connection uninitialized")
+        raise
 
     yield
     logger.info("Application shutdown sequence initiated")
@@ -55,7 +63,7 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/api/v1/generate-prompt")
-async def generate_prompt(request: PromptRequest, http_request:Request, ratelimits: None = Depends(RateLimiter(times=20, minutes=1)))->PromptResponse:
+async def generate_prompt(request: PromptRequest, http_request:Request, ratelimits: None = Depends(RateLimiter(times=20, minutes=1)), api_verification: None = Depends(verify_api_key))->PromptResponse:
     vertex_ai_client = http_request.app.state.vertex_ai_client
 
     if not vertex_ai_client:
@@ -76,7 +84,7 @@ async def generate_prompt(request: PromptRequest, http_request:Request, ratelimi
     except Exception as e:
         logger.error(f"Unexpected error: {e}")
         raise HTTPException(status_code = 500, detail = "Internal server error")
-    
+
 
     
 @app.get("/api/v1/health")

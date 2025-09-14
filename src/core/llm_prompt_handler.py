@@ -2,14 +2,11 @@ import logging
 from PySide6.QtCore import QObject, Slot, Signal
 import os 
 from dotenv import load_dotenv
-
-from ..keyboard_utils import simulate_keystrokes, clipboard_copy
+from .resource_handler import get_path_for_resource
 
 
 import httpx
-
 logger = logging.getLogger(__name__)
-load_dotenv()
 
 class LLMHandler(QObject):
     # Signal to emit the successful prompt and the original query
@@ -17,13 +14,20 @@ class LLMHandler(QObject):
     # Signal to emit the error message on failure
     prompt_failed = Signal(str)
 
+    def __init__(self):
+        super().__init__()
+        env_path = get_path_for_resource('.env')
+        load_dotenv(dotenv_path=env_path)
+        self.backend_url = os.getenv("BACKEND_API_URL")
+        self.backend_api = os.getenv("BACKEND_API_KEY")
+
 
     @Slot(str, str)
     def get_prompt_from_backend (self, user_query: str, original_command: str):
         """Make a post request to the backend with user_query, return an augmented prompt"""
 
         try:
-            base_url = os.getenv("BACKEND_API_URL")
+            base_url = self.backend_url
             if not base_url:
                 error_msg = "BACKEND_API_URL environment variable is not set."
                 logger.error(error_msg)
@@ -31,7 +35,11 @@ class LLMHandler(QObject):
                 return
             
             payload = {"user_query": user_query}
-            response = httpx.post(f"{base_url}/api/v1/generate-prompt", json=payload, timeout=30.0)
+            request_headers = {
+                "Content-Type": "application/json",
+                "X-API-KEY": self.backend_api
+            }
+            response = httpx.post(f"{base_url}/api/v1/generate-prompt", headers=request_headers, json=payload, timeout=30.0)
             response.raise_for_status() 
 
             data = response.json()
