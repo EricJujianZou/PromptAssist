@@ -3,3 +3,4 @@ keyboard
 psutil
 python-dotenv
 pyperclip
+httpx
