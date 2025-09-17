@@ -4,6 +4,8 @@
 [![Quick Demo](https://img.youtube.com/vi/oFcH-L0bwaI/maxresdefault.jpg)](https://youtu.be/oFcH-L0bwaI)
 ---
 
+Installation: https://github.com/EricJujianZou/PromptAssist/releases/tag/v1.0.0
+
 ## What is PromptAssist?
 
 PromptAssist is a lightweight Windows utility that runs in your system tray and gives you two powerful abilities in any application:
@@ -21,7 +23,7 @@ PromptAssist is a lightweight Windows utility that runs in your system tray and 
 
 ## Getting Started - Use The App
 
-1.  Go to the latest release page.
+1.  Go to the latest [release page](https://github.com/EricJujianZou/PromptAssist/releases/tag/v1.0.0)
 2.  Download the `PromptAssist.exe` file or follow the instructions to clone for yourself.
 3.  Run it! The PromptAssist icon will appear in your system tray.
 
